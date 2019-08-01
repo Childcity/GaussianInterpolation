@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.Set;
 
 public class InterpolationViewModel extends AndroidViewModel {
-    private List<PointF> inputPoints = null;
+    private List<PointF> inputPoints;
 
     private double[] gaussBasis = null; // ý - basis of gaussian function
-    private double alpha = 1; //default: pi(n-1) / (Xmax - Xmin)^2
+    private double alpha; //default: pi(n-1) / (Xmax - Xmin)^2
                              // , xmax, xmin  - максимальне і мінімальне значення аргумента х, тобто значення кінців відрізку.
 
     IntrpltAlgorithm IntrplAlgorithm = IntrpltAlgorithm.LAGRANGE;
@@ -46,6 +46,9 @@ public class InterpolationViewModel extends AndroidViewModel {
 
         prepareParams();
     }
+
+
+
 
     float getLagrangePoint(float X){
         double L;
@@ -77,6 +80,42 @@ public class InterpolationViewModel extends AndroidViewModel {
 
         return (float) G;
     }
+
+    float getGaussianParametricPoint(float X){
+        return getGaussianNormalPoint(X);
+    }
+
+    private void findGaussianBasis(){
+        int n = inputPoints.size();
+
+        double[][] Ab = new double[n][n + 1]; // n + 1 because the result (Y) will be here
+
+        // Create Basis matrix. Xl -> Xn, Xr -> X[1..n] in formula
+        for (int i = 0; i < n; i++) {
+            double xL = inputPoints.get(i).x;
+
+            for (int j = 0; j < n; j++) {
+                double xR = inputPoints.get(j).x;
+                Ab[i][j] = Math.exp(-alpha * Math.pow(xL - xR, 2));
+            }
+
+            Ab[i][n] = inputPoints.get(i).y;
+        }
+
+        //Toast.makeText(getApplication(),"Test Toast!!!",Toast.LENGTH_LONG).show();
+
+        try {
+            gaussBasis = GaussJordanElimination.SolveSystem(Ab, n);
+        }catch (NoSolutionException e){
+            Toast.makeText(getApplication(), "Решения для базисов ф-и Гаусса НЕ найдено!", Toast.LENGTH_LONG).show();
+            gaussBasis = new double[n];
+        }catch (InfiniteSolutionException e){
+            Toast.makeText(getApplication(), "Решения для базисов ф-и Гаусса содержит бесконечность!", Toast.LENGTH_LONG).show();
+            gaussBasis = new double[n];
+        }
+    }
+
+
 
     void addInputPoint(PointF point){
         if(inputPoints.contains(point))
@@ -114,6 +153,18 @@ public class InterpolationViewModel extends AndroidViewModel {
         return inputPoints.contains(point);
     }
 
+    private void sortInputPointsByX(){
+        Collections.sort(inputPoints, new Comparator<PointF>() {
+            @Override
+            public int compare(PointF left, PointF right) {
+                return Float.compare(left.x, right.x);
+            }
+        });
+    }
+
+
+
+
     Set<String> getInputPoints(){
         Set<String> points = new HashSet<>();
         for (PointF point: inputPoints ) {
@@ -141,47 +192,9 @@ public class InterpolationViewModel extends AndroidViewModel {
         prepareParams();
     }
 
-    private void sortInputPointsByX(){
-        Collections.sort(inputPoints, new Comparator<PointF>() {
-            @Override
-            public int compare(PointF left, PointF right) {
-                return Float.compare(left.x, right.x);
-            }
-        });
-    }
-
     private void prepareParams(){
         sortInputPointsByX();
         findGaussianBasis();
     }
 
-    private void findGaussianBasis(){
-        int n = inputPoints.size();
-
-        double[][] Ab = new double[n][n + 1];
-
-        // Create matrix
-        for (int i = 0; i < n; i++) {
-            double xL = inputPoints.get(i).x;
-
-            for (int j = 0; j < n; j++) {
-                double xR = inputPoints.get(j).x;
-                Ab[i][j] = Math.exp(-alpha * Math.pow(xL - xR, 2));
-            }
-
-            Ab[i][n] = inputPoints.get(i).y;
-        }
-
-        Toast.makeText(getApplication(),"Test Toast!!!",Toast.LENGTH_LONG).show();
-
-        try {
-            gaussBasis = GaussJordanElimination.SolveSystem(Ab, n);
-        }catch (NoSolutionException e){
-            Toast.makeText(getApplication(), "Решения для базисов ф-и Гаусса НЕ найдено!", Toast.LENGTH_LONG).show();
-            gaussBasis = new double[n];
-        }catch (InfiniteSolutionException e){
-            Toast.makeText(getApplication(), "Решения для базисов ф-и Гаусса содержит бесконечность!", Toast.LENGTH_LONG).show();
-            gaussBasis = new double[n];
-        }
-    }
 }

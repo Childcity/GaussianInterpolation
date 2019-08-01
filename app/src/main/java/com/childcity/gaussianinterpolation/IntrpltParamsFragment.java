@@ -17,8 +17,10 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import java.util.Objects;
@@ -28,14 +30,14 @@ import static android.widget.RadioGroup.*;
 public class IntrpltParamsFragment extends Fragment {
     private static final String TAG = "IntrpltParamsFragment";
     private InterpolationViewModel interpolationViewModel;
-    LayoutInflater ltInflater;
-    LinearLayout pointsLay;
+    private LayoutInflater ltInflater;
+    private LinearLayout pointsLay;
 
     public IntrpltParamsFragment() {
         // Required empty public constructor
     }
 
-    public static IntrpltParamsFragment newInstance() {
+    static IntrpltParamsFragment newInstance() {
         return new IntrpltParamsFragment();
     }
 
@@ -119,21 +121,14 @@ public class IntrpltParamsFragment extends Fragment {
 
     private void initView(){
         // set interpolation method
-        final RadioGroup intrpltMethod =  Objects.requireNonNull(getView()).findViewById(R.id.intrplt_method);
-        switch (interpolationViewModel.IntrplAlgorithm){
-            case GAUSSIAN_NORMAL: intrpltMethod.check(R.id.gaussian_normal_mod); break;
-            default: intrpltMethod.check(R.id.lagrange_mod);
-        }
-        intrpltMethod.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup radioGroup, int i) {
-                if (i == R.id.gaussian_normal_mod) {
-                    interpolationViewModel.IntrplAlgorithm = IntrpltAlgorithm.GAUSSIAN_NORMAL;
-                } else {
-                    interpolationViewModel.IntrplAlgorithm = IntrpltAlgorithm.LAGRANGE;
-                }
-            }
-        });
+
+        final Switch lagrangeSwitch=  Objects.requireNonNull(getView()).findViewById(R.id.lagrange_mod);
+        final Switch gaussianNormalSwitch=  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_normal_mod);
+        final Switch gaussianParametricSwitch=  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_parametric_mod);
+
+        lagrangeSwitch.setChecked(true);
+        gaussianNormalSwitch.setChecked(true);
+        gaussianParametricSwitch.setChecked(true);
 
         // Adding points to Front
         for (int i = 0; i < interpolationViewModel.getInputPointCount(); i++) {

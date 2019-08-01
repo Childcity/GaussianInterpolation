@@ -42,9 +42,9 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
     private InterpolationViewModel interpolationViewModel;
     private LineChart chart;
     private float step = 0.01f;
-    Switch isDrawValue;
+    private Switch isDrawValue;
 
-    public static ChartFragment newInstance() {
+    static ChartFragment newInstance() {
         return new ChartFragment();
     }
 
@@ -89,11 +89,14 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         List<Entry> inputPointsEntries = new ArrayList<>();
         List<Entry> lagrangeEntries = new ArrayList<>();
         List<Entry> gaussianNormalEntries = new ArrayList<>();
+        List<Entry> gaussianParametricEntries = new ArrayList<>();
         for (float i = xLeft; i < xRight; i += step) {
             float lagrangeY = interpolationViewModel.getLagrangePoint(i);
             float gaussianNormalY = interpolationViewModel.getGaussianNormalPoint(i);
+            float gaussianParametricY = interpolationViewModel.getGaussianParametricPoint(i);
             lagrangeEntries.add(new Entry(i, lagrangeY));
             gaussianNormalEntries.add(new Entry(i, gaussianNormalY));
+            gaussianParametricEntries.add(new Entry(i, gaussianParametricY));
         }
 
         for (int i = 0; i < interpolationViewModel.getInputPointCount(); i++) {
@@ -103,12 +106,14 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
         LineDataSet inputPoints = createLineDataSet(inputPointsEntries, "", Color.TRANSPARENT, false, false);
         LineDataSet lagrange = createLineDataSet(lagrangeEntries, "Интерполяция по Лагранжу", Color.RED, false, isDrawValue.isChecked());
-        LineDataSet gaussianNormal = createLineDataSet(gaussianNormalEntries, "Интерполяция по Гаусу", Color.GREEN, false, isDrawValue.isChecked());
+        LineDataSet gaussianNormal = createLineDataSet(gaussianNormalEntries, "Интерполяция по Гауссу", Color.GREEN, false, isDrawValue.isChecked());
+        LineDataSet gaussianParametric = createLineDataSet(gaussianParametricEntries, "Интерполяция по Гауссу (параметрический метод)", Color.BLUE, false, isDrawValue.isChecked());
 
         List<ILineDataSet> dataSets = new ArrayList<>();
         dataSets.add(inputPoints);
         dataSets.add(lagrange);
         dataSets.add(gaussianNormal);
+        dataSets.add(gaussianParametric);
         chart.setData(new LineData(dataSets));
     }
 
@@ -156,7 +161,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         {
             // set height of chart view
             ViewGroup.LayoutParams mParams = chart.getLayoutParams();
-            mParams.height = getActivity().getWindow().getDecorView().getWidth();
+            mParams.height = Objects.requireNonNull(getActivity()).getWindow().getDecorView().getWidth();
         }
     }
 
