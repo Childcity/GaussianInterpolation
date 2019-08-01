@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    tools:context=".IntrpltParamsFragment">
+
+
+    <ScrollView
+        android:layout_width="150dp"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:id="@+id/input_points">
+
+            <Button
+                android:id="@+id/add_point"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="24sp"
+                android:text="+"/>
+        </LinearLayout>
+
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:id="@+id/intrplt_method">
+
+            <RadioButton
+                android:id="@+id/lagrange_mod"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Метод Лагранжа" />
+
+            <RadioButton
+                android:id="@+id/gaussian_normal_mod"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Метод Гаусса" />
+        </RadioGroup>
+    </LinearLayout>
+</LinearLayout>
