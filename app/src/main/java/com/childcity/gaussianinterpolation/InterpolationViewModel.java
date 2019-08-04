@@ -1,14 +1,17 @@
 package com.childcity.gaussianinterpolation;
 
 import android.app.Application;
+import android.graphics.Point;
 import android.graphics.PointF;
 import com.childcity.gaussianinterpolation.SystemSolver.GaussJordanElimination;
 import com.childcity.gaussianinterpolation.SystemSolver.InfiniteSolutionException;
 import com.childcity.gaussianinterpolation.SystemSolver.NoSolutionException;
 
+import android.nfc.Tag;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.arch.core.util.Function;
 import androidx.lifecycle.AndroidViewModel;
 
 import java.util.ArrayList;
@@ -21,12 +24,15 @@ import java.util.Set;
 
 public class InterpolationViewModel extends AndroidViewModel {
     private List<PointF> inputPoints;
+    private List<List<PointF>> gaussParametricInputPoints;
 
-    private double[] gaussBasis = null; // ý - basis of gaussian function
+    private double[] gaussNormalBasis = null;
+    private double[][] gaussParametricBasis = null; // 2 dimension, because one matrix for X~, and one for Y~
+
     private double alpha; //default: pi(n-1) / (Xmax - Xmin)^2
-                             // , xmax, xmin  - максимальне і мінімальне значення аргумента х, тобто значення кінців відрізку.
+    // , xmax, xmin  - максимальне і мінімальне значення аргумента х, тобто значення кінців відрізку.
 
-    IntrpltAlgorithm IntrplAlgorithm = IntrpltAlgorithm.LAGRANGE;
+    IntrpltAlgorithm IntrplAlgorithm = new IntrpltAlgorithm(IntrpltAlgorithm.LAGRANGE);
 
     public InterpolationViewModel(Application application) {
         super(application);
@@ -48,7 +54,59 @@ public class InterpolationViewModel extends AndroidViewModel {
     }
 
 
+    private interface ITCounter{
+        float getXr(int i, float previousT);
+    }
 
+    private static double[] FindGaussianBasis(List<PointF> inputPoints, double alpha, Application app){
+        int n = inputPoints.size();
+
+        double[][] Ab = new double[n][n + 1]; // n + 1 because the result (Y) will be here
+
+        // Create Basis matrix. Xl -> Xn, Xr -> X[1..n] in formula
+        for (int i = 0; i < n; i++) {
+            double xL = inputPoints.get(i).x;
+
+            for (int j = 0; j < n; j++) {
+                double xR = inputPoints.get(j).x;
+                Ab[i][j] = Math.exp(-alpha * Math.pow(xL - xR, 2));
+            }
+
+            Ab[i][n] = inputPoints.get(i).y;
+        }
+
+        //Toast.makeText(getApplication(),"Test Toast!!!",Toast.LENGTH_LONG).show();
+
+        try {
+            return GaussJordanElimination.SolveSystem(Ab, n);
+        }catch (NoSolutionException e){
+            Toast.makeText(app, "Решения для базисов ф-и Гаусса НЕ найдено!", Toast.LENGTH_LONG).show();
+            return new double[n];
+        }catch (InfiniteSolutionException e){
+            Toast.makeText(app, "Решения для базисов ф-и Гаусса содержит бесконечность!", Toast.LENGTH_LONG).show();
+            return new double[n];
+        }
+    }
+
+    private static float GetGaussianPoint(List<PointF> inputPoints,
+                                                    double[] gaussParametricBasis, double alpha, float Xl,
+                                                    ITCounter tCounter) {
+        double G = 0;
+
+        float Xr = 0f;
+        for (int i = 0; i < inputPoints.size(); i++){
+            Xr = tCounter.getXr(i, Xr);
+            G += gaussParametricBasis[i] * Math.exp(-alpha * Math.pow(Xl - Xr, 2));
+        }
+
+        return (float) G;
+    }
+
+    private PointF getGaussianParametricPoint(float T, ITCounter tCounter){
+        float Xt = GetGaussianPoint(gaussParametricInputPoints.get(0), /*xBasis*/ gaussParametricBasis[0], alpha, T, tCounter);
+        float Yt = GetGaussianPoint(gaussParametricInputPoints.get(1), /*yBasis*/ gaussParametricBasis[1], alpha, T, tCounter);
+        return new PointF(Xt, Yt);
+    }
 
     float getLagrangePoint(float X){
         double L;
@@ -70,49 +128,35 @@ public class InterpolationViewModel extends AndroidViewModel {
     }
 
     float getGaussianNormalPoint(float X){
-        double G = 0;
-
-        for (int i = 0; i < inputPoints.size(); ++i)
-        {
-            float Xi = inputPoints.get(i).x;
-            G += gaussBasis[i] * Math.exp(-alpha * Math.pow(X - Xi, 2));
-        }
-
-        return (float) G;
-    }
-
-    float getGaussianParametricPoint(float X){
-        return getGaussianNormalPoint(X);
-    }
-
-    private void findGaussianBasis(){
-        int n = inputPoints.size();
-
-        double[][] Ab = new double[n][n + 1]; // n + 1 because the result (Y) will be here
-
-        // Create Basis matrix. Xl -> Xn, Xr -> X[1..n] in formula
-        for (int i = 0; i < n; i++) {
-            double xL = inputPoints.get(i).x;
-
-            for (int j = 0; j < n; j++) {
-                double xR = inputPoints.get(j).x;
-                Ab[i][j] = Math.exp(-alpha * Math.pow(xL - xR, 2));
+        return GetGaussianPoint(inputPoints, /*yBasis*/ gaussNormalBasis, alpha, X, new ITCounter() {
+            @Override
+            public float getXr(int i, float previousT) {
+                return inputPoints.get(i).x;
             }
+        });
+    }
 
-            Ab[i][n] = inputPoints.get(i).y;
-        }
+    PointF getGaussianParametricPoint(float T){
+        return getGaussianParametricPoint(T, new ITCounter() {
+            @Override
+            public float getXr(int i, float previousT) {
+                return i;
+            }
+        });
+    }
 
-        //Toast.makeText(getApplication(),"Test Toast!!!",Toast.LENGTH_LONG).show();
+    PointF getGaussianSummaryPoint(float T){
+        return getGaussianParametricPoint(T, new ITCounter() {
+            @Override
+            public float getXr(int i, float previousT) {
+                if(i == 0)
+                    return previousT;
 
-        try {
-            gaussBasis = GaussJordanElimination.SolveSystem(Ab, n);
-        }catch (NoSolutionException e){
-            Toast.makeText(getApplication(), "Решения для базисов ф-и Гаусса НЕ найдено!", Toast.LENGTH_LONG).show();
-            gaussBasis = new double[n];
-        }catch (InfiniteSolutionException e){
-            Toast.makeText(getApplication(), "Решения для базисов ф-и Гаусса содержит бесконечность!", Toast.LENGTH_LONG).show();
-            gaussBasis = new double[n];
-        }
+                PointF prevPoint = inputPoints.get(i - 1);
+                PointF currPoint = inputPoints.get(i);
+                return previousT + countDistance(prevPoint, currPoint);
+            }
+        });
     }
 
 
@@ -192,9 +236,34 @@ public class InterpolationViewModel extends AndroidViewModel {
         prepareParams();
     }
 
+    @SuppressWarnings("SuspiciousNameCombination")
     private void prepareParams(){
         sortInputPointsByX();
-        findGaussianBasis();
+        gaussNormalBasis = FindGaussianBasis(inputPoints, alpha, getApplication());
+
+        List<PointF> xArray = new ArrayList<>(); // X(t)
+        List<PointF> yArray = new ArrayList<>(); // Y(t)
+
+        for (int t = 0; t < inputPoints.size(); t++) {
+            xArray.add(new PointF(t, inputPoints.get(t).x)); // fill X(t)
+            yArray.add(new PointF(t, inputPoints.get(t).y)); // fill Y(t)
+        }
+
+        if(gaussParametricInputPoints != null)
+            gaussParametricInputPoints.clear();
+
+        gaussParametricInputPoints = new ArrayList<>();
+        gaussParametricInputPoints.add(xArray);
+        gaussParametricInputPoints.add(yArray);
+
+        gaussParametricBasis = new double[2][];
+        gaussParametricBasis[0] = FindGaussianBasis(xArray, alpha, getApplication());
+        gaussParametricBasis[1] = FindGaussianBasis(yArray, alpha, getApplication());
+
     }
 
+    private float countDistance(PointF a, PointF b){
+        double x1 = a.x, x2 = b.x, y1 = a.y, y2 = b.y;
+        return (float) Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+    }
 }

@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity
             //Reading Settings
             SharedPreferences activityPreferences = getPreferences(MODE_PRIVATE);
             interpolationViewModel.setInputPoints(activityPreferences.getStringSet("InputPoints", new HashSet<String>()));
-            interpolationViewModel.IntrplAlgorithm = IntrpltAlgorithm.valueOf(activityPreferences.getString("IntrpltAlgorithm", "LAGRANGE"));
+            interpolationViewModel.IntrplAlgorithm = new IntrpltAlgorithm(activityPreferences.getInt("IntrpltAlgorithm", IntrpltAlgorithm.LAGRANGE));
         }
     }
 
@@ -124,7 +124,7 @@ public class MainActivity extends AppCompatActivity
         SharedPreferences activityPreferences = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor editor = activityPreferences.edit();
 
-        editor.putString("IntrpltAlgorithm", interpolationViewModel.IntrplAlgorithm.name());
+        editor.putInt("IntrpltAlgorithm", interpolationViewModel.IntrplAlgorithm.toInt());
         editor.putStringSet("InputPoints", interpolationViewModel.getInputPoints());
 
         editor.apply();

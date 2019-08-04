@@ -33,6 +33,11 @@ public class IntrpltParamsFragment extends Fragment {
     private LayoutInflater ltInflater;
     private LinearLayout pointsLay;
 
+    private CheckBox lagrangeSwitch;
+    private CheckBox gaussianNormalSwitch;
+    private CheckBox gaussianParametricSwitch;
+    private CheckBox gaussianSummarySwitch;
+
     public IntrpltParamsFragment() {
         // Required empty public constructor
     }
@@ -75,7 +80,7 @@ public class IntrpltParamsFragment extends Fragment {
     @Override
     public void onPause() {
         for (int i = 0; i < pointsLay.getChildCount() - 1 /*-1 because last is '+' button*/; i++) {
-            Log.e(TAG, "onPause. i=" + i);
+            //Log.e(TAG, "onPause. i=" + i);
             LinearLayout pointsLayItem = (LinearLayout) pointsLay.getChildAt(i);
             TextView xTV = (TextView) pointsLayItem.getChildAt(0);
             TextView yTV = (TextView) pointsLayItem.getChildAt(1);
@@ -86,6 +91,14 @@ public class IntrpltParamsFragment extends Fragment {
                 interpolationViewModel.addInputPoint(newPoint);
             }
         }
+
+        IntrpltAlgorithm intrpltAlg = interpolationViewModel.IntrplAlgorithm;
+
+        intrpltAlg.changeFlag(IntrpltAlgorithm.LAGRANGE, lagrangeSwitch.isChecked());
+        intrpltAlg.changeFlag(IntrpltAlgorithm.GAUSSIAN_NORMAL, gaussianNormalSwitch.isChecked());
+        intrpltAlg.changeFlag(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC, gaussianParametricSwitch.isChecked());
+        intrpltAlg.changeFlag(IntrpltAlgorithm.GAUSSIAN_SUMMARY, gaussianSummarySwitch.isChecked());
+
         super.onPause();
     }
 
@@ -122,13 +135,16 @@ public class IntrpltParamsFragment extends Fragment {
     private void initView(){
         // set interpolation method
 
-        final Switch lagrangeSwitch=  Objects.requireNonNull(getView()).findViewById(R.id.lagrange_mod);
-        final Switch gaussianNormalSwitch=  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_normal_mod);
-        final Switch gaussianParametricSwitch=  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_parametric_mod);
+        lagrangeSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.lagrange_mod);
+        gaussianNormalSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_normal_mod);
+        gaussianParametricSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_parametric_mod);
+        gaussianSummarySwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_summary_mod);
 
-        lagrangeSwitch.setChecked(true);
-        gaussianNormalSwitch.setChecked(true);
-        gaussianParametricSwitch.setChecked(true);
+        IntrpltAlgorithm intrpltAlg = interpolationViewModel.IntrplAlgorithm;
+        lagrangeSwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.LAGRANGE));
+        gaussianNormalSwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_NORMAL));
+        gaussianParametricSwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC));
+        gaussianSummarySwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY));
 
         // Adding points to Front
         for (int i = 0; i < interpolationViewModel.getInputPointCount(); i++) {

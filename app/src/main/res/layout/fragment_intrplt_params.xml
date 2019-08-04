@@ -4,6 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
+    android:layout_marginStart="10dp"
+    android:layout_marginTop="10dp"
+    android:layout_marginEnd="10dp"
+    android:layout_marginBottom="10dp"
     tools:context=".IntrpltParamsFragment">
 
 
@@ -12,17 +16,17 @@
         android:layout_height="match_parent">
 
         <LinearLayout
+            android:id="@+id/input_points"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:id="@+id/input_points">
+            android:orientation="vertical">
 
             <Button
                 android:id="@+id/add_point"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="24sp"
-                android:text="+"/>
+                android:text="+"
+                android:textSize="24sp" />
         </LinearLayout>
 
     </ScrollView>
@@ -35,44 +39,32 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
+            android:layout_marginStart="10dp"
             android:orientation="vertical">
 
-            <Switch
+            <CheckBox
                 android:id="@+id/lagrange_mod"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Метод Лагранжа" />
 
-            <Switch
+            <CheckBox
                 android:id="@+id/gaussian_normal_mod"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Метод Гаусса" />
 
-            <Switch
+            <CheckBox
                 android:id="@+id/gaussian_parametric_mod"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Метод Гаусса \n(параметрический)" />
+                android:text="Метод Гаусса\n(параметрический)" />
+
+            <CheckBox
+                android:id="@+id/gaussian_summary_mod"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Метод Гаусса\n(сумарный)" />
         </LinearLayout>
-        <!--<RadioGroup-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:layout_marginStart="20dp"-->
-            <!--android:id="@+id/intrplt_method">-->
-
-            <!--<RadioButton-->
-                <!--android:id="@+id/lagrange_mod"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="Метод Лагранжа" />-->
-
-            <!--<RadioButton-->
-                <!--android:id="@+id/gaussian_normal_mod"-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="Метод Гаусса" />-->
-        <!--</RadioGroup>-->
     </LinearLayout>
 </LinearLayout>

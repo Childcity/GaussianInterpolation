@@ -31,8 +31,10 @@ import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
+import com.github.mikephil.charting.utils.EntryXComparator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -83,37 +85,70 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
     }
 
     private void addChartData() {
-        float xLeft = interpolationViewModel.getInputPointAt(0).x;
-        float xRight = interpolationViewModel.getInputPointAt(interpolationViewModel.getInputPointCount() - 1).x;
+        final float xLeft = interpolationViewModel.getInputPointAt(0).x;
+        final float xRight = interpolationViewModel.getInputPointAt(interpolationViewModel.getInputPointCount() - 1).x;
+        final IntrpltAlgorithm intrpltAlg = interpolationViewModel.IntrplAlgorithm;
 
         List<Entry> inputPointsEntries = new ArrayList<>();
-        List<Entry> lagrangeEntries = new ArrayList<>();
-        List<Entry> gaussianNormalEntries = new ArrayList<>();
-        List<Entry> gaussianParametricEntries = new ArrayList<>();
-        for (float i = xLeft; i < xRight; i += step) {
-            float lagrangeY = interpolationViewModel.getLagrangePoint(i);
-            float gaussianNormalY = interpolationViewModel.getGaussianNormalPoint(i);
-            float gaussianParametricY = interpolationViewModel.getGaussianParametricPoint(i);
-            lagrangeEntries.add(new Entry(i, lagrangeY));
-            gaussianNormalEntries.add(new Entry(i, gaussianNormalY));
-            gaussianParametricEntries.add(new Entry(i, gaussianParametricY));
-        }
+        List<Entry> lagrangeEntries = intrpltAlg.test(IntrpltAlgorithm.LAGRANGE) ? new ArrayList<Entry>() : null;
+        List<Entry> gaussianNormalEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_NORMAL) ? new ArrayList<Entry>() : null;
+
+        if(lagrangeEntries != null || (gaussianNormalEntries != null))
+            for (float i = xLeft; i < (xRight + step); i += step) {
+                float lagrangeY = interpolationViewModel.getLagrangePoint(i);
+                float gaussianNormalY = interpolationViewModel.getGaussianNormalPoint(i);
+                if(lagrangeEntries != null) lagrangeEntries.add(new Entry(i, lagrangeY));
+                if(gaussianNormalEntries != null) gaussianNormalEntries.add(new Entry(i, gaussianNormalY));
+            }
+
+        // add Entry for parametric methods
+        List<Entry> gaussianParametricEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC) ? new ArrayList<Entry>() : null;
+        List<Entry> gaussianSummaryEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY) ? new ArrayList<Entry>() : null;
+
+        if(gaussianParametricEntries != null || (gaussianSummaryEntries != null))
+            for (float t = 0f; t < (interpolationViewModel.getInputPointCount() + step); t += step) {
+                PointF gaussianParametricPoint = interpolationViewModel.getGaussianParametricPoint(t);
+                PointF gaussianSummaryPoint = interpolationViewModel.getGaussianSummaryPoint(t);
+
+                if(gaussianParametricEntries != null) gaussianParametricEntries.add(new Entry(gaussianParametricPoint.x, gaussianParametricPoint.y));
+                if(gaussianSummaryEntries != null) gaussianSummaryEntries.add(new Entry(gaussianSummaryPoint.x, gaussianSummaryPoint.y));
+            }
 
         for (int i = 0; i < interpolationViewModel.getInputPointCount(); i++) {
             PointF point = interpolationViewModel.getInputPointAt(i);
             inputPointsEntries.add(new Entry(point.x, point.y, getResources().getDrawable(R.drawable.ic_star_black_16dp)));
         }
 
-        LineDataSet inputPoints = createLineDataSet(inputPointsEntries, "", Color.TRANSPARENT, false, false);
-        LineDataSet lagrange = createLineDataSet(lagrangeEntries, "Интерполяция по Лагранжу", Color.RED, false, isDrawValue.isChecked());
-        LineDataSet gaussianNormal = createLineDataSet(gaussianNormalEntries, "Интерполяция по Гауссу", Color.GREEN, false, isDrawValue.isChecked());
-        LineDataSet gaussianParametric = createLineDataSet(gaussianParametricEntries, "Интерполяция по Гауссу (параметрический метод)", Color.BLUE, false, isDrawValue.isChecked());
+        if(lagrangeEntries != null) Collections.sort(lagrangeEntries, new EntryXComparator());
+        if(gaussianNormalEntries != null)Collections.sort(gaussianNormalEntries, new EntryXComparator());
+        if(gaussianParametricEntries != null) Collections.sort(gaussianParametricEntries, new EntryXComparator());
+        if(gaussianSummaryEntries != null) Collections.sort(gaussianSummaryEntries, new EntryXComparator());
 
         List<ILineDataSet> dataSets = new ArrayList<>();
+
+        LineDataSet inputPoints = createLineDataSet(inputPointsEntries, "", Color.TRANSPARENT, false, false);
         dataSets.add(inputPoints);
-        dataSets.add(lagrange);
-        dataSets.add(gaussianNormal);
-        dataSets.add(gaussianParametric);
+
+        if(lagrangeEntries != null){
+            LineDataSet lagrange = createLineDataSet(lagrangeEntries, "по Лагранжу", Color.RED, false, isDrawValue.isChecked());
+            dataSets.add(lagrange);
+        }
+
+        if(gaussianNormalEntries != null) {
+            LineDataSet gaussianNormal = createLineDataSet(gaussianNormalEntries, "по Гауссу", Color.GREEN, false, isDrawValue.isChecked());
+            dataSets.add(gaussianNormal);
+        }
+
+        if(gaussianParametricEntries != null) {
+            LineDataSet gaussianParametric = createLineDataSet(gaussianParametricEntries, "по Гауссу (параметрический)", Color.BLUE, false, isDrawValue.isChecked());
+            dataSets.add(gaussianParametric);
+        }
+
+        if(gaussianSummaryEntries != null){
+            LineDataSet gaussianSummary = createLineDataSet(gaussianSummaryEntries, "по Гауссу (сумарный)", Color.MAGENTA, false, isDrawValue.isChecked());
+            dataSets.add(gaussianSummary);
+        }
+
         chart.setData(new LineData(dataSets));
     }
 
@@ -124,6 +159,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
     @Override
     public void onNothingSelected() {}
+
 
     private LineDataSet createLineDataSet(List<Entry> entries, String label, int color, boolean drawCircle, boolean drawValues){
         LineDataSet dataSet = new LineDataSet(entries, label);
@@ -264,7 +300,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         stepSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                stepText.setText(String.valueOf(i/100f));
+                stepText.setText(String.valueOf(i/200f));
             }
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
