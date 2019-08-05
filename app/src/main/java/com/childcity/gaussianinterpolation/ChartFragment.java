@@ -3,8 +3,10 @@ package com.childcity.gaussianinterpolation;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 
+import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -19,6 +21,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Switch;
 
@@ -37,11 +40,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ChartFragment extends Fragment implements OnChartValueSelectedListener {
     private static final String TAG = "ChartFragment";
+    final ChartFragment self = this;
 
     private InterpolationViewModel interpolationViewModel;
+    private GraphicDrawerTask graphicDrawerTask;
     private LineChart chart;
     private float step = 0.01f;
     private Switch isDrawValue;
@@ -64,9 +71,8 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         isDrawValue.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                chart.clear();
-                addChartData();
-                chart.invalidate();
+                graphicDrawerTask = new GraphicDrawerTask(self, false);
+                graphicDrawerTask.execute();
             }
         });
 
@@ -76,15 +82,14 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         {
             // setup and draw chart
             chart = (LineChart) Objects.requireNonNull(getView()).findViewById(R.id.chart);
-            addChartData();
-            settingUpChart();
-            chart.invalidate(); // refresh
+            graphicDrawerTask = new GraphicDrawerTask(self, true);
+            graphicDrawerTask.execute();
         }
 
         setupStepSeekBar();
     }
 
-    private void addChartData() {
+    private LineData getChartData() {
         final float xLeft = interpolationViewModel.getInputPointAt(0).x;
         final float xRight = interpolationViewModel.getInputPointAt(interpolationViewModel.getInputPointCount() - 1).x;
         final IntrpltAlgorithm intrpltAlg = interpolationViewModel.IntrplAlgorithm;
@@ -94,7 +99,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         List<Entry> gaussianNormalEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_NORMAL) ? new ArrayList<Entry>() : null;
 
         if(lagrangeEntries != null || (gaussianNormalEntries != null))
-            for (float i = xLeft; i < (xRight + step); i += step) {
+            for (float i = xLeft; i < xRight; i += step) {
                 float lagrangeY = interpolationViewModel.getLagrangePoint(i);
                 float gaussianNormalY = interpolationViewModel.getGaussianNormalPoint(i);
                 if(lagrangeEntries != null) lagrangeEntries.add(new Entry(i, lagrangeY));
@@ -106,7 +111,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         List<Entry> gaussianSummaryEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY) ? new ArrayList<Entry>() : null;
 
         if(gaussianParametricEntries != null || (gaussianSummaryEntries != null))
-            for (float t = 0f; t < (interpolationViewModel.getInputPointCount() + step); t += step) {
+            for (float t = 0f; t < interpolationViewModel.getInputPointCount(); t += step) {
                 PointF gaussianParametricPoint = interpolationViewModel.getGaussianParametricPoint(t);
                 PointF gaussianSummaryPoint = interpolationViewModel.getGaussianSummaryPoint(t);
 
@@ -149,7 +154,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
             dataSets.add(gaussianSummary);
         }
 
-        chart.setData(new LineData(dataSets));
+        return new LineData(dataSets);
     }
 
     @Override
@@ -294,7 +299,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 //    }
 
     private void setupStepSeekBar(){
-        SeekBar stepSeek = Objects.requireNonNull(getView()).findViewById(R.id.step_bar);
+        final SeekBar stepSeek = Objects.requireNonNull(getView()).findViewById(R.id.step_bar);
         final EditText stepText = Objects.requireNonNull(getView()).findViewById(R.id.editText);
 
         stepSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -321,14 +326,52 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
                 float newStep = Float.parseFloat(text);
 
-                if(newStep <= 0.0f)
+                if(newStep <= 0f)
                     return;
 
                 step = newStep;
-                chart.clear();
-                addChartData();
-                chart.invalidate();
+
+                graphicDrawerTask = new GraphicDrawerTask(self, false);
+                graphicDrawerTask.execute();
             }
         });
+    }
+    //static volatile int changeLock = 0;
+
+    static class GraphicDrawerTask extends AsyncTask<Void, Void, LineData> {
+        private boolean isSettingUpChart;
+        private ChartFragment fragment;
+
+        GraphicDrawerTask(ChartFragment fragment, boolean isSettingUpChart){
+            this.isSettingUpChart = isSettingUpChart;
+            this.fragment = fragment;
+        }
+
+        @Override
+        protected void onPreExecute(){
+            super.onPreExecute();
+            ProgressBar progressBar = Objects.requireNonNull(fragment.getActivity()).findViewById(R.id.toolbar_progress_bar);
+            progressBar.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected LineData doInBackground(Void... voids) {
+            return fragment.getChartData();
+        }
+
+        @Override
+        protected void onPostExecute(LineData dataSets){
+            super.onPostExecute(dataSets);
+
+            fragment.chart.clear();
+            fragment.chart.setData(dataSets);
+            if(isSettingUpChart)
+                fragment.settingUpChart();
+            fragment.chart.invalidate();
+
+            ProgressBar progressBar = Objects.requireNonNull(fragment.getActivity()).findViewById(R.id.toolbar_progress_bar);
+            progressBar.setVisibility(View.INVISIBLE);
+            fragment = null;
+        }
     }
 }

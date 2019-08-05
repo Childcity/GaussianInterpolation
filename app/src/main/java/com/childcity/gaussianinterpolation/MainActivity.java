@@ -60,9 +60,9 @@ public class MainActivity extends AppCompatActivity
     protected void onStart() {
 
         // Display the fragment as the main content.
-//        getSupportFragmentManager().beginTransaction()
-//                .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
-//                .commit();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
+                .commit();
 
         super.onStart();
     }
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
+        //getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 

@@ -1,5 +1,6 @@
 package com.childcity.gaussianinterpolation;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.graphics.Point;
 import android.graphics.PointF;
@@ -8,6 +9,7 @@ import com.childcity.gaussianinterpolation.SystemSolver.InfiniteSolutionExceptio
 import com.childcity.gaussianinterpolation.SystemSolver.NoSolutionException;
 
 import android.nfc.Tag;
+import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -266,4 +268,5 @@ public class InterpolationViewModel extends AndroidViewModel {
         double x1 = a.x, x2 = b.x, y1 = a.y, y2 = b.y;
         return (float) Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
     }
+
 }
