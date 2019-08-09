@@ -47,8 +47,11 @@ public class GaussJordanElimination {
             if (a[i][i] == 0)
             {
                 c = 1;
-                while (a[i + c][i] == 0 && (i + c) < n)
+                while ((i + c) < n && a[i + c][i] == 0)
+                {
                     c++;
+                    Log.e(TAG, "i:"+i+" c:"+c+" i+c:"+(i+c));
+                }
                 if ((i + c) == n)
                 {
                     flag = 1;

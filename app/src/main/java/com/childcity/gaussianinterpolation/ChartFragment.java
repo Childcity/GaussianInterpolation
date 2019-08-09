@@ -26,6 +26,7 @@ import android.widget.SeekBar;
 import android.widget.Switch;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
@@ -45,12 +46,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ChartFragment extends Fragment implements OnChartValueSelectedListener {
     private static final String TAG = "ChartFragment";
-    final ChartFragment self = this;
+    private static final int seekBarStep = 200;
+    private static final float drawStep = 0.1f;
+    private final ChartFragment self = this;
 
     private InterpolationViewModel interpolationViewModel;
     private GraphicDrawerTask graphicDrawerTask;
     private LineChart chart;
-    private float step = 0.01f;
+    private float step = drawStep;
     private Switch isDrawValue;
 
     static ChartFragment newInstance() {
@@ -90,8 +93,8 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
     }
 
     private LineData getChartData() {
-        final float xLeft = interpolationViewModel.getInputPointAt(0).x;
-        final float xRight = interpolationViewModel.getInputPointAt(interpolationViewModel.getInputPointCount() - 1).x;
+        final float xLeft = interpolationViewModel.getXmin();
+        final float xRight = interpolationViewModel.getXmax();
         final IntrpltAlgorithm intrpltAlg = interpolationViewModel.IntrplAlgorithm;
 
         List<Entry> inputPointsEntries = new ArrayList<>();
@@ -99,59 +102,76 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         List<Entry> gaussianNormalEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_NORMAL) ? new ArrayList<Entry>() : null;
 
         if(lagrangeEntries != null || (gaussianNormalEntries != null))
-            for (float i = xLeft; i < xRight; i += step) {
-                float lagrangeY = interpolationViewModel.getLagrangePoint(i);
-                float gaussianNormalY = interpolationViewModel.getGaussianNormalPoint(i);
-                if(lagrangeEntries != null) lagrangeEntries.add(new Entry(i, lagrangeY));
-                if(gaussianNormalEntries != null) gaussianNormalEntries.add(new Entry(i, gaussianNormalY));
+            for (float i = xLeft; i <= xRight; i += step) {
+                if(lagrangeEntries != null) {
+                    float lagrangeY = interpolationViewModel.getLagrangePoint(i);
+                    lagrangeEntries.add(new Entry(i, lagrangeY));
+                }
+                if(gaussianNormalEntries != null) {
+                    float gaussianNormalY = interpolationViewModel.getGaussianNormalPoint(i);
+                    gaussianNormalEntries.add(new Entry(i, gaussianNormalY));
+                }
             }
 
         // add Entry for parametric methods
         List<Entry> gaussianParametricEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC) ? new ArrayList<Entry>() : null;
         List<Entry> gaussianSummaryEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY) ? new ArrayList<Entry>() : null;
 
-        if(gaussianParametricEntries != null || (gaussianSummaryEntries != null))
+        if(gaussianParametricEntries != null) {
             for (float t = 0f; t < interpolationViewModel.getInputPointCount(); t += step) {
                 PointF gaussianParametricPoint = interpolationViewModel.getGaussianParametricPoint(t);
-                PointF gaussianSummaryPoint = interpolationViewModel.getGaussianSummaryPoint(t);
-
-                if(gaussianParametricEntries != null) gaussianParametricEntries.add(new Entry(gaussianParametricPoint.x, gaussianParametricPoint.y));
-                if(gaussianSummaryEntries != null) gaussianSummaryEntries.add(new Entry(gaussianSummaryPoint.x, gaussianSummaryPoint.y));
+                gaussianParametricEntries.add(new Entry(gaussianParametricPoint.x, gaussianParametricPoint.y));
             }
+        }
+
+        int lastPointsIndex = interpolationViewModel.getInputPointCount() - 1;
+        if(gaussianSummaryEntries != null) {
+            float maxT = interpolationViewModel.getGussSummaryXInputPoint(lastPointsIndex).x;
+            //Log.e("maxT", maxT+"");
+            for (float t = 0f; t <= maxT; t += step) {
+                PointF gaussianSummaryPoint = interpolationViewModel.getGaussianSummaryPoint(t);
+                gaussianSummaryEntries.add(new Entry(gaussianSummaryPoint.x, gaussianSummaryPoint.y));
+                Log.e("SummaryPoint", gaussianSummaryPoint.toString());
+            }
+        }
+
 
         for (int i = 0; i < interpolationViewModel.getInputPointCount(); i++) {
             PointF point = interpolationViewModel.getInputPointAt(i);
             inputPointsEntries.add(new Entry(point.x, point.y, getResources().getDrawable(R.drawable.ic_star_black_16dp)));
-        }
 
-        if(lagrangeEntries != null) Collections.sort(lagrangeEntries, new EntryXComparator());
-        if(gaussianNormalEntries != null)Collections.sort(gaussianNormalEntries, new EntryXComparator());
-        if(gaussianParametricEntries != null) Collections.sort(gaussianParametricEntries, new EntryXComparator());
-        if(gaussianSummaryEntries != null) Collections.sort(gaussianSummaryEntries, new EntryXComparator());
+//            Entry inputEntry = new Entry(point.x, point.y);
+//            if(lagrangeEntries != null) lagrangeEntries.add(inputEntry);
+//            if(gaussianNormalEntries != null) gaussianNormalEntries.add(inputEntry);
+//            if(gaussianParametricEntries != null) gaussianParametricEntries.add(inputEntry);
+//            if(gaussianSummaryEntries != null) gaussianSummaryEntries.add(inputEntry);
+        }
 
         List<ILineDataSet> dataSets = new ArrayList<>();
 
-        LineDataSet inputPoints = createLineDataSet(inputPointsEntries, "", Color.TRANSPARENT, false, false);
+        LineDataSet inputPoints = createLineDataSet(inputPointsEntries, "", Color.TRANSPARENT, false, isDrawValue.isChecked());
         dataSets.add(inputPoints);
 
         if(lagrangeEntries != null){
-            LineDataSet lagrange = createLineDataSet(lagrangeEntries, "по Лагранжу", Color.RED, false, isDrawValue.isChecked());
+            LineDataSet lagrange = createLineDataSet(lagrangeEntries, "по Лагранжу", Color.DKGRAY, true, isDrawValue.isChecked());
             dataSets.add(lagrange);
         }
 
         if(gaussianNormalEntries != null) {
-            LineDataSet gaussianNormal = createLineDataSet(gaussianNormalEntries, "по Гауссу", Color.GREEN, false, isDrawValue.isChecked());
+            LineDataSet gaussianNormal = createLineDataSet(gaussianNormalEntries, "по Гауссу", Color.GREEN, true, isDrawValue.isChecked());
             dataSets.add(gaussianNormal);
         }
 
-        if(gaussianParametricEntries != null) {
-            LineDataSet gaussianParametric = createLineDataSet(gaussianParametricEntries, "по Гауссу (параметрический)", Color.BLUE, false, isDrawValue.isChecked());
-            dataSets.add(gaussianParametric);
-        }
+        if(interpolationViewModel.getInputPointCount() > 1){
+            if(gaussianParametricEntries != null) {
+                LineDataSet gaussianParametric = createLineDataSet(gaussianParametricEntries, "по Гауссу (параметрический)", Color.BLUE, true, isDrawValue.isChecked());
+                dataSets.add(gaussianParametric);
+            }
 
-        if(gaussianSummaryEntries != null){
-            LineDataSet gaussianSummary = createLineDataSet(gaussianSummaryEntries, "по Гауссу (сумарный)", Color.MAGENTA, false, isDrawValue.isChecked());
-            dataSets.add(gaussianSummary);
+            if(gaussianSummaryEntries != null){
+                LineDataSet gaussianSummary = createLineDataSet(gaussianSummaryEntries, "по Гауссу (сумарный)", Color.MAGENTA, true, isDrawValue.isChecked());
+                dataSets.add(gaussianSummary);
+            }
         }
 
         return new LineData(dataSets);
@@ -159,7 +179,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
     @Override
     public void onValueSelected(Entry e, Highlight h) {
-        Log.e(TAG, "" + h.getX() + h.getY());
+        Log.e(TAG, "onValueSelected: " + h.getX() + h.getY());
     }
 
     @Override
@@ -167,6 +187,14 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
 
     private LineDataSet createLineDataSet(List<Entry> entries, String label, int color, boolean drawCircle, boolean drawValues){
+        Collections.sort(entries, new EntryXComparator());
+
+//        for (int i = 0; i < entries.size(); i++) {
+//            if (entries.get(i).getX() < interpolationViewModel.getInputPointAt(0).x){
+//                entries.remove(i--);
+//            }
+//        }
+
         LineDataSet dataSet = new LineDataSet(entries, label);
         dataSet.setAxisDependency(YAxis.AxisDependency.LEFT);
         //dataSet.setDrawIcons(true);
@@ -174,9 +202,17 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         //dataSet.setMode(LineDataSet.Mode.LINEAR); // algorithm of drawing (HORIZONTAL_BEZIER)
 
         dataSet.setValueTextSize(10f); // text size of values on line
-        dataSet.setDrawCircles(drawCircle);
         dataSet.setColor(color);
+        dataSet.setLineWidth(0.001f);
         dataSet.setDrawValues(drawValues);
+
+        // setup circle
+        {
+            dataSet.setDrawCircles(drawCircle);
+            dataSet.setDrawCircleHole(false);
+            dataSet.setCircleRadius(2);
+            dataSet.setCircleColor(color == Color.TRANSPARENT ? Color.BLUE : color);
+        }
 
         settingUpHighlighter(dataSet);
 
@@ -190,24 +226,30 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         chart.setTouchEnabled(true);
         chart.setClickable(true);
 
+        // setting up legend
+        {
+            Legend legend = chart.getLegend();
+            legend.setForm(Legend.LegendForm.CIRCLE);
+            legend.setWordWrapEnabled(true);
+        }
+
         settingUpAxis();
 
+        // highlighting a some point
         {
-            // highlighting a some point
             //chart.highlightValue(-0.5f, 0, false);
         }
 
         chart.setOnChartValueSelectedListener(this);
 
-        {
-            // set height of chart view
-            ViewGroup.LayoutParams mParams = chart.getLayoutParams();
-            mParams.height = Objects.requireNonNull(getActivity()).getWindow().getDecorView().getWidth();
-        }
+        // set height of chart view
+//        {
+//            ViewGroup.LayoutParams mParams = chart.getLayoutParams();
+//            mParams.height = Objects.requireNonNull(getActivity()).getWindow().getDecorView().getWidth();
+//        }
     }
 
     private void settingUpAxis() {
-
 
         // Axis
         chart.getAxisRight().setEnabled(false);
@@ -234,7 +276,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 //        leftY.setAxisMinimum(leftY.getAxisMinimum() - 2 * step);
 //        leftY.setAxisMaximum(leftY.getAxisMaximum() + 2 * step);
 
-        //leftY.setGranularity(0.2f);
+        leftY.setGranularity(0.01f);
     }
 
     private void settingUpHighlighter(LineDataSet dataSet) {
@@ -302,10 +344,12 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         final SeekBar stepSeek = Objects.requireNonNull(getView()).findViewById(R.id.step_bar);
         final EditText stepText = Objects.requireNonNull(getView()).findViewById(R.id.editText);
 
+        stepSeek.setProgress((int) (step * seekBarStep));
+
         stepSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                stepText.setText(String.valueOf(i/200f));
+                stepText.setText(String.valueOf(i/(float)seekBarStep));
             }
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
@@ -326,10 +370,10 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
                 float newStep = Float.parseFloat(text);
 
-                if(newStep <= 0f)
-                    return;
+                if(newStep > 0f)
+                    step = newStep;
+                else step = drawStep;
 
-                step = newStep;
 
                 graphicDrawerTask = new GraphicDrawerTask(self, false);
                 graphicDrawerTask.execute();
@@ -352,11 +396,18 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
             super.onPreExecute();
             ProgressBar progressBar = Objects.requireNonNull(fragment.getActivity()).findViewById(R.id.toolbar_progress_bar);
             progressBar.setVisibility(View.VISIBLE);
+            fragment.interpolationViewModel.prepareParams();
         }
 
         @Override
         protected LineData doInBackground(Void... voids) {
-            return fragment.getChartData();
+            LineData lineData = new LineData();
+            try {
+                lineData = fragment.getChartData();
+            } catch (Exception e) {
+                Log.d(TAG, Log.getStackTraceString(e));
+            }
+            return lineData;
         }
 
         @Override
@@ -368,6 +419,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
             if(isSettingUpChart)
                 fragment.settingUpChart();
             fragment.chart.invalidate();
+            fragment.chart.animateX(800);
 
             ProgressBar progressBar = Objects.requireNonNull(fragment.getActivity()).findViewById(R.id.toolbar_progress_bar);
             progressBar.setVisibility(View.INVISIBLE);

@@ -31,7 +31,7 @@
 
     </ScrollView>
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -43,10 +43,10 @@
             android:orientation="vertical">
 
             <CheckBox
-                android:id="@+id/lagrange_mod"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Метод Лагранжа" />
+            android:id="@+id/lagrange_mod"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Метод Лагранжа" />
 
             <CheckBox
                 android:id="@+id/gaussian_normal_mod"
@@ -65,6 +65,47 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Метод Гаусса\n(сумарный)" />
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:layout_height="2dp"
+                android:background="?android:attr/listDivider" />
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#000000"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textAlignment="center"
+                android:text="Поле для alpha" />
+
+            <EditText
+                android:id="@+id/alpha"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="4sp"
+                android:textAlignment="viewStart"
+                android:textColor="#000000"
+                android:textSize="18sp"
+                android:textStyle="italic"
+                android:text="pi * (size - 1) / (Xmax - Xmin)^2"
+                android:inputType="textMultiLine|textCapWords"
+                tools:ignore="Autofill,LabelFor" />
+
+            <TextView
+                android:id="@+id/textView5"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="false"
+                android:text="Справка: "
+                android:textAlignment="viewStart"
+                android:textStyle="italic" />
+
         </LinearLayout>
-    </LinearLayout>
+    </ScrollView>
 </LinearLayout>

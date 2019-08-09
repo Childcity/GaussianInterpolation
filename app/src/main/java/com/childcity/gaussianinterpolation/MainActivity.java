@@ -2,6 +2,7 @@ package com.childcity.gaussianinterpolation;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -15,11 +16,13 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.google.android.material.navigation.NavigationView;
 
+import java.util.Arrays;
 import java.util.HashSet;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     InterpolationViewModel interpolationViewModel = null;
+    private int lastFrag = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,11 +51,13 @@ public class MainActivity extends AppCompatActivity
 
         interpolationViewModel = ViewModelProviders.of(this).get(InterpolationViewModel.class);
 
-        {
+        try {
             //Reading Settings
             SharedPreferences activityPreferences = getPreferences(MODE_PRIVATE);
-            interpolationViewModel.setInputPoints(activityPreferences.getStringSet("InputPoints", new HashSet<String>()));
+            interpolationViewModel.setInputPoints(activityPreferences.getString("InputPoints", ""));
             interpolationViewModel.IntrplAlgorithm = new IntrpltAlgorithm(activityPreferences.getInt("IntrpltAlgorithm", IntrpltAlgorithm.LAGRANGE));
+        }catch (Exception e){
+            Log.e("LoadParams", Arrays.toString(e.getStackTrace()));
         }
     }
 
@@ -60,9 +65,24 @@ public class MainActivity extends AppCompatActivity
     protected void onStart() {
 
         // Display the fragment as the main content.
-        getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
-                .commit();
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        if (lastFrag == 0) {
+            if(getSupportFragmentManager().findFragmentByTag("chart_tag") == null) {
+                navigationView.getMenu().findItem(R.id.nav_home).setChecked(true);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
+                        .commit();
+            }
+        } else if (lastFrag == 1) {
+            if(getSupportFragmentManager().findFragmentByTag("intrplt_params_tag") == null){
+                navigationView.getMenu().findItem(R.id.nav_gallery).setChecked(true);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.container_main, IntrpltParamsFragment.newInstance(), "intrplt_params_tag")
+                        .commit();
+            }
+
+        }
+
 
         super.onStart();
     }
@@ -105,10 +125,12 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_home) {
+            lastFrag = 0;
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
                     .commit();
         }else if (id == R.id.nav_gallery) {
+            lastFrag = 1;
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container_main, IntrpltParamsFragment.newInstance(), "intrplt_params_tag")
                     .commit();
@@ -125,7 +147,7 @@ public class MainActivity extends AppCompatActivity
         SharedPreferences.Editor editor = activityPreferences.edit();
 
         editor.putInt("IntrpltAlgorithm", interpolationViewModel.IntrplAlgorithm.toInt());
-        editor.putStringSet("InputPoints", interpolationViewModel.getInputPoints());
+        editor.putString("InputPoints", interpolationViewModel.getInputPoints());
 
         editor.apply();
         super.onStop();
