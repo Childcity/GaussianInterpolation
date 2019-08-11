@@ -2,6 +2,7 @@ package com.childcity.gaussianinterpolation;
 
 
 import android.annotation.SuppressLint;
+import android.content.SharedPreferences;
 import android.graphics.PointF;
 import android.os.Bundle;
 
@@ -12,22 +13,29 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 
+import android.text.Editable;
 import android.text.Html;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
+import android.widget.Scroller;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Objects;
 
+import static android.content.Context.MODE_PRIVATE;
 import static android.widget.RadioGroup.*;
 
 public class IntrpltParamsFragment extends Fragment {
@@ -71,6 +79,7 @@ public class IntrpltParamsFragment extends Fragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         FragmentActivity activity = Objects.requireNonNull(getActivity());
+        activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
         interpolationViewModel = ViewModelProviders.of(activity).get(InterpolationViewModel.class);
 
         ltInflater = getLayoutInflater();
@@ -80,6 +89,21 @@ public class IntrpltParamsFragment extends Fragment {
         addPointButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 addInputPoint(new PointF(0f, 0f));
+            }
+        });
+
+        final TextView alphaTextView = Objects.requireNonNull(getView()).findViewById(R.id.alpha);
+        alphaTextView.setText(interpolationViewModel.Alpha);
+        alphaTextView.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                interpolationViewModel.Alpha = editable.toString();
+                interpolationViewModel.prepareParams();
             }
         });
 
@@ -110,11 +134,24 @@ public class IntrpltParamsFragment extends Fragment {
         intrpltAlg.changeFlag(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC, gaussianParametricSwitch.isChecked());
         intrpltAlg.changeFlag(IntrpltAlgorithm.GAUSSIAN_SUMMARY, gaussianSummarySwitch.isChecked());
 
+
+        if(getActivity() != null){
+            SharedPreferences activityPreferences = getActivity().getPreferences(MODE_PRIVATE);
+            SharedPreferences.Editor editor = activityPreferences.edit();
+
+            editor.putInt("IntrpltAlgorithm", interpolationViewModel.IntrplAlgorithm.toInt());
+            editor.putString("InputPoints", interpolationViewModel.getInputPoints());
+            editor.putString("Alpha", interpolationViewModel.Alpha);
+
+            editor.apply();
+        }
+
         super.onPause();
     }
 
     @SuppressLint({"SetTextI18n", "ClickableViewAccessibility"})
     private void addInputPoint(PointF point){
+        final LockableScrollView pointsScroll =  Objects.requireNonNull(getView()).findViewById(R.id.input_points_scroll);
         final LinearLayout pointsLayItem = (LinearLayout) ltInflater.inflate(R.layout.input_points_item, pointsLay, false);
         final TextView xTV = (TextView) pointsLayItem.getChildAt(0);
         final TextView yTV = (TextView) pointsLayItem.getChildAt(1);
@@ -155,10 +192,12 @@ public class IntrpltParamsFragment extends Fragment {
 
                 switch (event.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
+                        pointsScroll.setScrollingEnabled(false);
                         lastAction = MotionEvent.ACTION_DOWN;
                         yDelta = pointsLayItem.getY() - Y;
                         break;
                     case MotionEvent.ACTION_UP:
+                        pointsScroll.setScrollingEnabled(true);
                         if(actionMoveCount < 5){ //selete Point, if user quick touch
                             delButtonOnClick.apply(view);
                         }else if(moveDelta < pointsLayItemH - piecePointsLayItemH){
@@ -187,6 +226,7 @@ public class IntrpltParamsFragment extends Fragment {
                                     LinearLayout nextLay = index != (pointsLay.getChildCount()-2) ? (LinearLayout) pointsLay.getChildAt(index + 1) : null;
 
                                     if(nextLay != null || prevLay != null){
+                                        pointsScroll.setScrollingEnabled(true);
                                         pointsLayItem.setY(YPositionBeforeMoving);
                                         pointsLay.removeView(pointsLayItem);
 
@@ -240,9 +280,10 @@ public class IntrpltParamsFragment extends Fragment {
         TextView textView =  Objects.requireNonNull(getView()).findViewById(R.id.textView5);
         textView.setText(Html.fromHtml("Справка: <br>" +
                 "<b>size</b> - количество точек<br>" +
-                "<b>Xmax</b> - максимальное значение икса<br>" +
-                "<b>Xmin</b> - минимальное значение икса"));
-
-
+                "<b>Xmax</b> - максимальное значение икса/t<br>" +
+                "<b>Xmin</b> - минимальное значение икса/t" //+
+                //"<b>Tmax</b> - максимальное значение t<br>" +
+                //"<b>Tmin</b> - минимальное значение t"
+        ));
     }
-    }
+}

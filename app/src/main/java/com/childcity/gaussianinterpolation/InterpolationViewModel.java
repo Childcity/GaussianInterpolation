@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.graphics.Point;
 import android.graphics.PointF;
+
+import com.childcity.gaussianinterpolation.MathParser.MatchParser;
 import com.childcity.gaussianinterpolation.SystemSolver.GaussJordanElimination;
 import com.childcity.gaussianinterpolation.SystemSolver.InfiniteSolutionException;
 import com.childcity.gaussianinterpolation.SystemSolver.NoSolutionException;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 public class InterpolationViewModel extends AndroidViewModel {
+    static MatchParser Parser = new MatchParser();
     private List<PointF> inputPoints;
     private List<List<PointF>> gaussParametricInputPoints;
     private List<List<PointF>> gaussSummaryInputPoints;
@@ -36,13 +39,22 @@ public class InterpolationViewModel extends AndroidViewModel {
 
     private float Xmax; // , xmax, xmin  - максимальне і мінімальне значення аргумента х, тобто значення кінців відрізку.
     private float Xmin;
-    private double alpha; //default: pi(n-1) / (Xmax - Xmin)^2
+    private float TMin;
+    private float TMaxParametric;
+    private float TMaxSummary;
+
+    private double normalAlpha; //default: pi(n-1) / (Xmax - Xmin)^2
+    private double parametricAlpha;
+    private double summaryAlpha;
 
 
+    String Alpha;
     IntrpltAlgorithm IntrplAlgorithm = new IntrpltAlgorithm(IntrpltAlgorithm.LAGRANGE);
 
     public InterpolationViewModel(Application application) {
         super(application);
+
+        Alpha = "pi * (size - 1) / pow((Xmax - Xmin), 2)";
 
         // set default Points (first app run)
         inputPoints = new ArrayList<>(Arrays.asList(
@@ -59,6 +71,30 @@ public class InterpolationViewModel extends AndroidViewModel {
 
     float getXmin() {
         return Xmin;
+    }
+
+    public float getTMin() {
+        return TMin;
+    }
+
+    public float getTMaxParametric() {
+        return TMaxParametric;
+    }
+
+    public float getTMaxSummary() {
+        return TMaxSummary;
+    }
+
+    public double getNormalAlpha() {
+        return normalAlpha;
+    }
+
+    public double getParametricAlpha() {
+        return parametricAlpha;
+    }
+
+    public double getSummaryAlpha() {
+        return summaryAlpha;
     }
 
 
@@ -106,9 +142,8 @@ public class InterpolationViewModel extends AndroidViewModel {
                                                     ITCounter tCounter) {
         double G = 0;
 
-        float Xr = 0f;
         for (int i = 0; i < inputPoints.size(); i++){
-            Xr = tCounter.getXr(i, Xr);
+            float Xr = inputPoints.get(i).x;
             G += parametricBasis[i] * Math.exp(-alpha * Math.pow(Xl - Xr, 2));
         }
 
@@ -147,7 +182,7 @@ public class InterpolationViewModel extends AndroidViewModel {
     }
 
     float getGaussianNormalPoint(float X){
-        return GetGaussianPoint(inputPoints, /*yBasis*/ gaussNormalBasis, alpha, X, new ITCounter() {
+        return GetGaussianPoint(inputPoints, /*yBasis*/ gaussNormalBasis, normalAlpha, X, new ITCounter() {
             @Override
             public float getXr(int i, float previousT) {
                 return inputPoints.get(i).x;
@@ -156,11 +191,11 @@ public class InterpolationViewModel extends AndroidViewModel {
     }
 
     PointF getGaussianParametricPoint(float T){
-        return getGaussianParametricPoint(gaussParametricInputPoints, gaussParametricBasis, alpha, T);
+        return getGaussianParametricPoint(gaussParametricInputPoints, gaussParametricBasis, parametricAlpha, T);
     }
 
     PointF getGaussianSummaryPoint(float T){
-        return getGaussianParametricPoint(gaussSummaryInputPoints, gaussSummaryBasis, alpha, T);
+        return getGaussianParametricPoint(gaussSummaryInputPoints, gaussSummaryBasis, summaryAlpha, T);
     }
 
 
@@ -182,7 +217,7 @@ public class InterpolationViewModel extends AndroidViewModel {
     }
 
     void swapInputPointAt(int index1, int index2){
-        if(index1 < inputPoints.size() && index2 >= 0) {
+        if(index2 < inputPoints.size() && index1 < inputPoints.size() && index2 >= 0) {
             Collections.swap(inputPoints, index1, index2);
         }else {
             Log.e("swapInputPointAt", "index1 & index2 is out of bounds!");
@@ -226,14 +261,28 @@ public class InterpolationViewModel extends AndroidViewModel {
 
     @SuppressWarnings("SuspiciousNameCombination")
     void prepareParams(){
+        Parser.setVariable("size", (double) inputPoints.size());
+        Parser.setVariable("pi", Math.PI);
+
         Xmax = Collections.max(inputPoints, new PointFComparator()).x;
         Xmin = Collections.min(inputPoints, new PointFComparator()).x;
 
-        alpha = Math.PI * (inputPoints.size() - 1) / Math.pow(Xmax - Xmin, 2); // set default alpha
+
+        try {
+            Parser.setVariable("Xmin", (double) Xmin);
+            Parser.setVariable("Xmax", (double) Xmax);
+            normalAlpha = Parser.Parse(Alpha);
+            Log.e(Alpha, ""+normalAlpha);
+        }catch(Exception e){
+            Toast.makeText(getApplication(), "Параметр alpha задан неверно: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            normalAlpha = (Math.PI * (inputPoints.size() - 1)) / ((Xmax - Xmin) * (Xmax - Xmin)); // set default alpha
+        }
+
 
         //////////////////////////NormalBasis
 
-        gaussNormalBasis = FindGaussianBasis(inputPoints, alpha, getApplication());
+        if(IntrplAlgorithm.test(IntrpltAlgorithm.GAUSSIAN_NORMAL))
+            gaussNormalBasis = FindGaussianBasis(inputPoints, normalAlpha, getApplication());
 
         /////////////////////////ParametricBasis
 
@@ -245,6 +294,19 @@ public class InterpolationViewModel extends AndroidViewModel {
             yArray.add(new PointF(i, inputPoints.get(i).y)); // fill Y(t)
         }
 
+        TMin = xArray.get(0).x;
+        TMaxParametric = xArray.get(inputPoints.size() - 1).x;
+
+        try {
+            Parser.setVariable("Xmin", (double) TMin);
+            Parser.setVariable("Xmax", (double) TMaxParametric);
+            parametricAlpha = Parser.Parse(Alpha);
+            Log.e(Alpha, ""+parametricAlpha);
+        }catch(Exception e){
+            //Toast.makeText(getApplication(), "Параметр alpha задан неверно: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            parametricAlpha = (Math.PI * (inputPoints.size() - 1)) / ((TMaxParametric - TMin) * (TMaxParametric - TMin)); // set default alpha
+        }
+
         if(gaussParametricInputPoints != null)
             gaussParametricInputPoints.clear();
 
@@ -252,16 +314,12 @@ public class InterpolationViewModel extends AndroidViewModel {
         gaussParametricInputPoints.add(xArray);
         gaussParametricInputPoints.add(yArray);
 
-        gaussParametricBasis = new double[2][];
-        gaussParametricBasis[0] = FindGaussianBasis(xArray, alpha, getApplication());
-        gaussParametricBasis[1] = FindGaussianBasis(yArray, alpha, getApplication());
+        if(IntrplAlgorithm.test(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC)){
+            gaussParametricBasis = new double[2][];
+            gaussParametricBasis[0] = FindGaussianBasis(xArray, parametricAlpha, getApplication());
+            gaussParametricBasis[1] = FindGaussianBasis(yArray, parametricAlpha, getApplication());
+        }
 
-        for (PointF p : xArray) {
-            Log.e("xArrayP", p.toString());
-        }
-        for (PointF p : yArray) {
-            Log.e("yArrayP", p.toString());
-        }
         //////////////////////////////// SummaryBasis
 
         xArray = new ArrayList<>(); // X(t)
@@ -274,17 +332,22 @@ public class InterpolationViewModel extends AndroidViewModel {
         for (int i = 1; i < inputPoints.size(); i++) {
             PointF prevPoint = inputPoints.get(i - 1);
             PointF currPoint = inputPoints.get(i);
-            previousT += countDistance(prevPoint, currPoint);
+            previousT = previousT + countDistance(prevPoint, currPoint);
 
             xArray.add(new PointF(previousT, inputPoints.get(i).x)); // fill X(t)
             yArray.add(new PointF(previousT, inputPoints.get(i).y)); // fill Y(t)
         }
 
-        for (PointF p : xArray) {
-            Log.e("xArrayS", p.toString());
-        }
-        for (PointF p : yArray) {
-            Log.e("yArrayS", p.toString());
+        TMaxSummary = xArray.get(inputPoints.size() - 1).x;
+
+        try {
+            Parser.setVariable("Xmin", (double) TMin);
+            Parser.setVariable("Xmax", (double) TMaxSummary);
+            summaryAlpha = Parser.Parse(Alpha);
+            Log.e(Alpha, ""+summaryAlpha);
+        }catch(Exception e){
+            //Toast.makeText(getApplication(), "Параметр alpha задан неверно: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            summaryAlpha = (Math.PI * (inputPoints.size() - 1)) / ((TMaxSummary - TMin) * (TMaxSummary - TMin)); // set default alpha
         }
 
         if(gaussSummaryInputPoints != null)
@@ -294,16 +357,18 @@ public class InterpolationViewModel extends AndroidViewModel {
         gaussSummaryInputPoints.add(xArray);
         gaussSummaryInputPoints.add(yArray);
 
-        gaussSummaryBasis = new double[2][];
-        gaussSummaryBasis[0] = FindGaussianBasis(xArray, alpha, getApplication());
-        gaussSummaryBasis[1] = FindGaussianBasis(yArray, alpha, getApplication());
+
+        if(IntrplAlgorithm.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY)){
+            gaussSummaryBasis = new double[2][];
+            gaussSummaryBasis[0] = FindGaussianBasis(xArray, summaryAlpha, getApplication());
+            gaussSummaryBasis[1] = FindGaussianBasis(yArray, summaryAlpha, getApplication());
+        }
+
     }
 
     private float countDistance(PointF a, PointF b){
-        double x1 = a.x,
-                x2 = b.x,
-                y1 = a.y,
-                y2 = b.y;
+        double x1 = a.x, x2 = b.x,
+                y1 = a.y, y2 = b.y;
         return (float) Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
     }
 

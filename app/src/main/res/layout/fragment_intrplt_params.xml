@@ -11,7 +11,8 @@
     tools:context=".IntrpltParamsFragment">
 
 
-    <ScrollView
+    <com.childcity.gaussianinterpolation.LockableScrollView
+        android:id="@+id/input_points_scroll"
         android:layout_width="150dp"
         android:layout_height="match_parent">
 
@@ -29,7 +30,7 @@
                 android:textSize="24sp" />
         </LinearLayout>
 
-    </ScrollView>
+    </com.childcity.gaussianinterpolation.LockableScrollView>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -93,7 +94,7 @@
                 android:textColor="#000000"
                 android:textSize="18sp"
                 android:textStyle="italic"
-                android:text="pi * (size - 1) / (Xmax - Xmin)^2"
+                android:text=""
                 android:inputType="textMultiLine|textCapWords"
                 tools:ignore="Autofill,LabelFor" />
 

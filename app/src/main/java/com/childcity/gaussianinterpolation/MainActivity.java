@@ -17,7 +17,6 @@ import androidx.lifecycle.ViewModelProviders;
 import com.google.android.material.navigation.NavigationView;
 
 import java.util.Arrays;
-import java.util.HashSet;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -54,6 +53,7 @@ public class MainActivity extends AppCompatActivity
         try {
             //Reading Settings
             SharedPreferences activityPreferences = getPreferences(MODE_PRIVATE);
+            interpolationViewModel.Alpha = activityPreferences.getString("Alpha", interpolationViewModel.Alpha);
             interpolationViewModel.setInputPoints(activityPreferences.getString("InputPoints", ""));
             interpolationViewModel.IntrplAlgorithm = new IntrpltAlgorithm(activityPreferences.getInt("IntrpltAlgorithm", IntrpltAlgorithm.LAGRANGE));
         }catch (Exception e){
@@ -68,14 +68,14 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.nav_view);
         if (lastFrag == 0) {
             if(getSupportFragmentManager().findFragmentByTag("chart_tag") == null) {
-                navigationView.getMenu().findItem(R.id.nav_home).setChecked(true);
+                navigationView.getMenu().findItem(R.id.nav_chart).setChecked(true);
                 getSupportFragmentManager().beginTransaction()
                         .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
                         .commit();
             }
         } else if (lastFrag == 1) {
             if(getSupportFragmentManager().findFragmentByTag("intrplt_params_tag") == null){
-                navigationView.getMenu().findItem(R.id.nav_gallery).setChecked(true);
+                navigationView.getMenu().findItem(R.id.nav_input).setChecked(true);
                 getSupportFragmentManager().beginTransaction()
                         .replace(R.id.container_main, IntrpltParamsFragment.newInstance(), "intrplt_params_tag")
                         .commit();
@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        //getMenuInflater().inflate(R.menu.main, menu);
+        getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
 
@@ -112,7 +112,11 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_info) {
+            new InterpolationInfoDialog(interpolationViewModel.getXmin(), interpolationViewModel.getXmax(),
+                    interpolationViewModel.getTMin(), interpolationViewModel.getTMaxParametric(), interpolationViewModel.getTMaxSummary(),
+                    interpolationViewModel.getNormalAlpha(), interpolationViewModel.getParametricAlpha(), interpolationViewModel.getSummaryAlpha())
+                    .show(getSupportFragmentManager(), "chart_info_tag");
             return true;
         }
 
@@ -124,12 +128,12 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_home) {
+        if (id == R.id.nav_chart) {
             lastFrag = 0;
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
                     .commit();
-        }else if (id == R.id.nav_gallery) {
+        }else if (id == R.id.nav_input) {
             lastFrag = 1;
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container_main, IntrpltParamsFragment.newInstance(), "intrplt_params_tag")
@@ -148,6 +152,7 @@ public class MainActivity extends AppCompatActivity
 
         editor.putInt("IntrpltAlgorithm", interpolationViewModel.IntrplAlgorithm.toInt());
         editor.putString("InputPoints", interpolationViewModel.getInputPoints());
+        editor.putString("Alpha", interpolationViewModel.Alpha);
 
         editor.apply();
         super.onStop();

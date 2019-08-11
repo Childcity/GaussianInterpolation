@@ -118,21 +118,30 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         List<Entry> gaussianSummaryEntries = intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY) ? new ArrayList<Entry>() : null;
 
         if(gaussianParametricEntries != null) {
-            for (float t = 0f; t < interpolationViewModel.getInputPointCount(); t += step) {
+            // t[ 0.0 ... (n-1)]
+            for (float t = 0f; t <= (interpolationViewModel.getInputPointCount() - 1f); t += step) {
                 PointF gaussianParametricPoint = interpolationViewModel.getGaussianParametricPoint(t);
                 gaussianParametricEntries.add(new Entry(gaussianParametricPoint.x, gaussianParametricPoint.y));
+                //Log.e("ParametricPoint", gaussianParametricPoint.toString());
             }
         }
 
-        int lastPointsIndex = interpolationViewModel.getInputPointCount() - 1;
         if(gaussianSummaryEntries != null) {
+            int lastPointsIndex = interpolationViewModel.getInputPointCount() - 1;
             float maxT = interpolationViewModel.getGussSummaryXInputPoint(lastPointsIndex).x;
             //Log.e("maxT", maxT+"");
+            // t[ 0.0 ... (maxT)]
             for (float t = 0f; t <= maxT; t += step) {
                 PointF gaussianSummaryPoint = interpolationViewModel.getGaussianSummaryPoint(t);
                 gaussianSummaryEntries.add(new Entry(gaussianSummaryPoint.x, gaussianSummaryPoint.y));
-                Log.e("SummaryPoint", gaussianSummaryPoint.toString());
+                //Log.e("SummaryPoint", gaussianSummaryPoint.toString());
             }
+
+//            for (int t = 0; t <= (interpolationViewModel.getInputPointCount() - 1); t += 1) {
+//                PointF gaussianSummaryPoint = interpolationViewModel.getGaussianSummaryPoint(interpolationViewModel.getGussSummaryXInputPoint(t).x);
+//                gaussianSummaryEntries.add(new Entry(gaussianSummaryPoint.x, gaussianSummaryPoint.y));
+//                Log.e("SummaryPoint", gaussianSummaryPoint.toString());
+//            }
         }
 
 
@@ -421,8 +430,11 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
             fragment.chart.invalidate();
             fragment.chart.animateX(800);
 
-            ProgressBar progressBar = Objects.requireNonNull(fragment.getActivity()).findViewById(R.id.toolbar_progress_bar);
-            progressBar.setVisibility(View.INVISIBLE);
+            if(fragment.getActivity() != null){
+                ProgressBar progressBar = fragment.getActivity().findViewById(R.id.toolbar_progress_bar);
+                progressBar.setVisibility(View.INVISIBLE);
+            }
+
             fragment = null;
         }
     }
