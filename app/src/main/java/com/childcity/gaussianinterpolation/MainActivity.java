@@ -1,10 +1,14 @@
 package com.childcity.gaussianinterpolation;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -16,6 +20,8 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.google.android.material.navigation.NavigationView;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity
@@ -118,6 +124,15 @@ public class MainActivity extends AppCompatActivity
                     interpolationViewModel.getNormalAlpha(), interpolationViewModel.getParametricAlpha(), interpolationViewModel.getSummaryAlpha())
                     .show(getSupportFragmentManager(), "chart_info_tag");
             return true;
+        }else if(id == R.id.action_save || id == R.id.action_load){
+            if(! FileController.CheckPermissions(MainActivity.this)){
+                Toast.makeText(MainActivity.this, "Разрешите право на чтение/запись для работы этой опции!", Toast.LENGTH_LONG).show();
+            }else if(id == R.id.action_save){
+                FileController.SaveAsCSV(MainActivity.this);
+            }else //noinspection ConstantConditions
+                if(id == R.id.action_load){
+                    FileController.LoadAsCSV(MainActivity.this);
+                }
         }
 
         return super.onOptionsItemSelected(item);
@@ -156,5 +171,10 @@ public class MainActivity extends AppCompatActivity
 
         editor.apply();
         super.onStop();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        FileController.processResult(MainActivity.this, interpolationViewModel, requestCode, resultCode, data);
     }
 }

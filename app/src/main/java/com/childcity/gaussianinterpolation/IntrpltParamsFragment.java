@@ -11,6 +11,8 @@ import androidx.annotation.Nullable;
 import androidx.arch.core.util.Function;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.text.Editable;
@@ -26,12 +28,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
-import android.widget.RadioGroup;
-import android.widget.ScrollView;
-import android.widget.Scroller;
-import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.Objects;
 
@@ -54,6 +51,8 @@ public class IntrpltParamsFragment extends Fragment {
     private float yDelta;
     private int actionMoveCount;
     private int lastAction;
+
+    private TextView alphaTextView;
 
     public IntrpltParamsFragment() {
         // Required empty public constructor
@@ -92,8 +91,7 @@ public class IntrpltParamsFragment extends Fragment {
             }
         });
 
-        final TextView alphaTextView = Objects.requireNonNull(getView()).findViewById(R.id.alpha);
-        alphaTextView.setText(interpolationViewModel.Alpha);
+        alphaTextView = Objects.requireNonNull(getView()).findViewById(R.id.alpha);
         alphaTextView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) { }
@@ -107,7 +105,13 @@ public class IntrpltParamsFragment extends Fragment {
             }
         });
 
-        initView();
+        final LiveData<Boolean> inputDataChanged =  interpolationViewModel.getInputDataChangedFlag();
+        inputDataChanged.observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean isChanged) {
+                initView();
+            }
+        });
     }
 
     @Override
@@ -272,12 +276,15 @@ public class IntrpltParamsFragment extends Fragment {
         gaussianParametricSwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_PARAMETRIC));
         gaussianSummarySwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_SUMMARY));
 
+        alphaTextView.setText(interpolationViewModel.Alpha);
+
         // Adding points to Front
+        pointsLay.removeViews(0, pointsLay.getChildCount() - 1);
         for (int i = 0; i < interpolationViewModel.getInputPointCount(); i++) {
             addInputPoint(interpolationViewModel.getInputPointAt(i));
         }
 
-        TextView textView =  Objects.requireNonNull(getView()).findViewById(R.id.textView5);
+        final TextView textView =  Objects.requireNonNull(getView()).findViewById(R.id.textView5);
         textView.setText(Html.fromHtml("Справка: <br>" +
                 "<b>size</b> - количество точек<br>" +
                 "<b>Xmax</b> - максимальное значение икса/t<br>" +

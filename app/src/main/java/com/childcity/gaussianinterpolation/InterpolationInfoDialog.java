@@ -44,7 +44,7 @@ public class InterpolationInfoDialog extends DialogFragment {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setMessage(text)
-                .setPositiveButton("ОК", null
+                .setPositiveButton(android.R.string.ok, null
                 );
         // Create the AlertDialog object and return it
         return builder.create();

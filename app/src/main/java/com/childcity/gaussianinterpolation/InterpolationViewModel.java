@@ -1,8 +1,6 @@
 package com.childcity.gaussianinterpolation;
 
-import android.annotation.SuppressLint;
 import android.app.Application;
-import android.graphics.Point;
 import android.graphics.PointF;
 
 import com.childcity.gaussianinterpolation.MathParser.MatchParser;
@@ -10,25 +8,20 @@ import com.childcity.gaussianinterpolation.SystemSolver.GaussJordanElimination;
 import com.childcity.gaussianinterpolation.SystemSolver.InfiniteSolutionException;
 import com.childcity.gaussianinterpolation.SystemSolver.NoSolutionException;
 
-import android.nfc.Tag;
-import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
-import androidx.arch.core.util.Function;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 public class InterpolationViewModel extends AndroidViewModel {
-    static MatchParser Parser = new MatchParser();
+    private static MatchParser Parser = new MatchParser();
     private List<PointF> inputPoints;
     private List<List<PointF>> gaussParametricInputPoints;
     private List<List<PointF>> gaussSummaryInputPoints;
@@ -47,21 +40,26 @@ public class InterpolationViewModel extends AndroidViewModel {
     private double parametricAlpha;
     private double summaryAlpha;
 
+    private MutableLiveData<Boolean> inputDataChangedFlag;
 
     String Alpha;
-    IntrpltAlgorithm IntrplAlgorithm = new IntrpltAlgorithm(IntrpltAlgorithm.LAGRANGE);
+    IntrpltAlgorithm IntrplAlgorithm;
 
     public InterpolationViewModel(Application application) {
         super(application);
 
-        Alpha = "pi * (size - 1) / pow((Xmax - Xmin), 2)";
+        inputDataChangedFlag = new MutableLiveData<>();
+
+        Alpha = "pi * (size - 1) / pow(Xmax - Xmin, 2)";
+
+        IntrplAlgorithm = new IntrpltAlgorithm(IntrpltAlgorithm.LAGRANGE);
 
         // set default Points (first app run)
         inputPoints = new ArrayList<>(Arrays.asList(
                 // Points from sqrt(x)
-                new PointF(0,0), new PointF(1,1),
-                new PointF(2.9f,1.7f), new PointF(20,4.5f),
-                new PointF(101,10f)
+                new PointF(0f,0f), new PointF(1f,1f),
+                new PointF(5.0f,2.23f), new PointF(9f,3f),
+                new PointF(36f,6f)
         ));
     }
 
@@ -73,28 +71,33 @@ public class InterpolationViewModel extends AndroidViewModel {
         return Xmin;
     }
 
-    public float getTMin() {
+    float getTMin() {
         return TMin;
     }
 
-    public float getTMaxParametric() {
+    float getTMaxParametric() {
         return TMaxParametric;
     }
 
-    public float getTMaxSummary() {
+    float getTMaxSummary() {
         return TMaxSummary;
     }
 
-    public double getNormalAlpha() {
+    double getNormalAlpha() {
         return normalAlpha;
     }
 
-    public double getParametricAlpha() {
+    double getParametricAlpha() {
         return parametricAlpha;
     }
 
-    public double getSummaryAlpha() {
+    double getSummaryAlpha() {
         return summaryAlpha;
+    }
+
+    
+    LiveData<Boolean> getInputDataChangedFlag() {
+        return inputDataChangedFlag;
     }
 
 
@@ -257,9 +260,10 @@ public class InterpolationViewModel extends AndroidViewModel {
             String[] coord = point.split(":");
             inputPoints.add(new PointF(Float.valueOf(coord[0]), Float.valueOf(coord[1])));
         }
+
+        inputDataChangedFlag.setValue(true);
     }
 
-    @SuppressWarnings("SuspiciousNameCombination")
     void prepareParams(){
         Parser.setVariable("size", (double) inputPoints.size());
         Parser.setVariable("pi", Math.PI);
@@ -290,6 +294,7 @@ public class InterpolationViewModel extends AndroidViewModel {
         List<PointF> yArray = new ArrayList<>(); // Y(t)
 
         for (int i = 0; i < inputPoints.size(); i++) {
+            //noinspection SuspiciousNameCombination
             xArray.add(new PointF(i, inputPoints.get(i).x)); // fill X(t)
             yArray.add(new PointF(i, inputPoints.get(i).y)); // fill Y(t)
         }

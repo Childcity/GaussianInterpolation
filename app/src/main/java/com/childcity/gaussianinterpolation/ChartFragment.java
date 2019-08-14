@@ -3,7 +3,6 @@ package com.childcity.gaussianinterpolation;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 
-import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.os.AsyncTask;
@@ -41,8 +40,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class ChartFragment extends Fragment implements OnChartValueSelectedListener {
     private static final String TAG = "ChartFragment";
@@ -63,7 +60,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.chart_fragment, container, false);
+        return inflater.inflate(R.layout.fragment_chart, container, false);
     }
 
     @Override
