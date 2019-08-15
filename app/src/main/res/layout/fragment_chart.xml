@@ -39,14 +39,15 @@
 
     </LinearLayout>
 
-    <Switch
+    <CheckBox
         android:id="@+id/on_value_visible"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="5dp"
+        android:textAlignment="textStart"
         android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
         android:ems="10"
-        android:text="Подписывать значение точок"
+        android:text="@string/print_points_label"
         android:checked="false" />
 
 </LinearLayout>

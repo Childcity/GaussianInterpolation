@@ -3,6 +3,7 @@ package com.childcity.gaussianinterpolation;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,12 +25,16 @@ import com.google.android.material.navigation.NavigationView;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private NavigationView navigationView;
     private InterpolationViewModel interpolationViewModel;
-    private int lastFrag = 1;
+    private static Map<String, Fragment> fragments;
+    private static int lastFrag = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +63,12 @@ public class MainActivity extends AppCompatActivity
 
         interpolationViewModel = ViewModelProviders.of(this).get(InterpolationViewModel.class);
 
+        if(fragments == null){
+            fragments = new HashMap<>();
+            fragments.put(ChartFragment.class.getName(), ChartFragment.newInstance());
+            fragments.put(IntrpltParamsFragment.class.getName(), IntrpltParamsFragment.newInstance());
+        }
+
         try {
             //Reading Settings
             SharedPreferences activityPreferences = getPreferences(MODE_PRIVATE);
@@ -73,24 +84,24 @@ public class MainActivity extends AppCompatActivity
     protected void onStart() {
 
         if (lastFrag == 0) {
-            if(getSupportFragmentManager().findFragmentByTag(ChartFragment.class.getName()) == null) {
+            if(getSupportFragmentManager().findFragmentByTag(ChartFragment.class.getName()) == null){
                 navigationView.getMenu().findItem(R.id.nav_chart).setChecked(true);
-                loadFragment(ChartFragment.newInstance());
+                loadFragment(ChartFragment.class.getName());
             }
         } else if (lastFrag == 1) {
             if(getSupportFragmentManager().findFragmentByTag(IntrpltParamsFragment.class.getName()) == null) {
                 navigationView.getMenu().findItem(R.id.nav_input).setChecked(true);
-                loadFragment(IntrpltParamsFragment.newInstance());
+                loadFragment(IntrpltParamsFragment.class.getName());
             }
         }
 
         super.onStart();
     }
 
-    private void loadFragment(final Fragment fragment) {
-        Log.e("main", fragment.getClass().getName());
+    private void loadFragment(String className) {
+        //Log.e("main", fragment.getClass().getName());
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container_main, fragment, fragment.getClass().getName())
+                .replace(R.id.container_main, fragments.get(className), className)
                 .commit();
     }
 
@@ -123,7 +134,7 @@ public class MainActivity extends AppCompatActivity
             new InterpolationInfoDialog(interpolationViewModel.getXmin(), interpolationViewModel.getXmax(),
                     interpolationViewModel.getTMin(), interpolationViewModel.getTMaxParametric(), interpolationViewModel.getTMaxSummary(),
                     interpolationViewModel.getNormalAlpha(), interpolationViewModel.getParametricAlpha(), interpolationViewModel.getSummaryAlpha())
-                    .show(getSupportFragmentManager(), "chart_info_tag");
+                    .show(getSupportFragmentManager(), InterpolationInfoDialog.class.getName());
             return true;
         }else if(id == R.id.action_save || id == R.id.action_load){
             if(! FileController.CheckPermissions(MainActivity.this)){
@@ -146,10 +157,18 @@ public class MainActivity extends AppCompatActivity
 
         if (id == R.id.nav_chart) {
             lastFrag = 0;
-            loadFragment(ChartFragment.newInstance());
+            loadFragment(ChartFragment.class.getName());
         }else if (id == R.id.nav_input) {
             lastFrag = 1;
-            loadFragment(IntrpltParamsFragment.newInstance());
+            loadFragment(IntrpltParamsFragment.class.getName());
+        }else if (id == R.id.nav_share) {
+            Uri chartImageUri = ((ChartFragment)fragments.get(ChartFragment.class.getName())).saveAsImage();
+            if(chartImageUri != null){
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("image/png");
+                share.putExtra(Intent.EXTRA_STREAM,chartImageUri);
+                startActivity(Intent.createChooser(share, "Share Image"));
+            }
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);

@@ -5,8 +5,10 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
@@ -14,17 +16,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Switch;
+import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -53,7 +58,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
     private GraphicDrawerTask graphicDrawerTask;
     private LineChart chart;
     private float step = DEFAULT_DRAW_STEP;
-    private Switch isDrawValue;
+    private CheckBox isDrawValue;
 
     static ChartFragment newInstance() {
         return new ChartFragment();
@@ -93,6 +98,22 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
                 graphicDrawerTask.execute();
             }
         });
+    }
+
+    public Uri saveAsImage(){
+        String title = "interpolation_chart";
+        String subFolderPath = "Gorodetskiy";
+
+        String path = Environment.getExternalStorageDirectory().getPath() + "/DCIM/"
+                + subFolderPath + "/" + title;
+
+        if(chart == null || (! chart.saveToGallery(title, subFolderPath, "Интерполяционный график",
+                Bitmap.CompressFormat.PNG, 100))){
+            //Toast.makeText(this.getActivity(), "Невозможно сохранить изображение!", Toast.LENGTH_LONG).show();
+            return null;
+        }
+
+        return new Uri.Builder().appendPath(path).build();
     }
 
     private LineData getChartData() {
