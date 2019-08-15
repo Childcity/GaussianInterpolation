@@ -79,10 +79,15 @@ public class IntrpltParamsFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
         FragmentActivity activity = Objects.requireNonNull(getActivity());
         activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
-        interpolationViewModel = ViewModelProviders.of(activity).get(InterpolationViewModel.class);
 
+        interpolationViewModel = ViewModelProviders.of(activity).get(InterpolationViewModel.class);
         ltInflater = getLayoutInflater();
+
         pointsLay =  Objects.requireNonNull(getView()).findViewById(R.id.input_points);
+        lagrangeSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.lagrange_mod);
+        gaussianNormalSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_normal_mod);
+        gaussianParametricSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_parametric_mod);
+        gaussianSummarySwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_summary_mod);
 
         final Button addPointButton =  Objects.requireNonNull(getView()).findViewById(R.id.add_point);
         addPointButton.setOnClickListener(new OnClickListener() {
@@ -264,12 +269,6 @@ public class IntrpltParamsFragment extends Fragment {
 
     private void initView(){
         // set interpolation method
-
-        lagrangeSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.lagrange_mod);
-        gaussianNormalSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_normal_mod);
-        gaussianParametricSwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_parametric_mod);
-        gaussianSummarySwitch =  Objects.requireNonNull(getView()).findViewById(R.id.gaussian_summary_mod);
-
         IntrpltAlgorithm intrpltAlg = interpolationViewModel.IntrplAlgorithm;
         lagrangeSwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.LAGRANGE));
         gaussianNormalSwitch.setChecked(intrpltAlg.test(IntrpltAlgorithm.GAUSSIAN_NORMAL));

@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProviders;
 
 import com.google.android.material.navigation.NavigationView;
@@ -26,7 +27,8 @@ import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    InterpolationViewModel interpolationViewModel = null;
+    private NavigationView navigationView;
+    private InterpolationViewModel interpolationViewModel;
     private int lastFrag = 1;
 
     @Override
@@ -47,7 +49,7 @@ public class MainActivity extends AppCompatActivity
 //        });
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView = findViewById(R.id.nav_view);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -70,27 +72,26 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onStart() {
 
-        // Display the fragment as the main content.
-        NavigationView navigationView = findViewById(R.id.nav_view);
         if (lastFrag == 0) {
-            if(getSupportFragmentManager().findFragmentByTag("chart_tag") == null) {
+            if(getSupportFragmentManager().findFragmentByTag(ChartFragment.class.getName()) == null) {
                 navigationView.getMenu().findItem(R.id.nav_chart).setChecked(true);
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
-                        .commit();
+                loadFragment(ChartFragment.newInstance());
             }
         } else if (lastFrag == 1) {
-            if(getSupportFragmentManager().findFragmentByTag("intrplt_params_tag") == null){
+            if(getSupportFragmentManager().findFragmentByTag(IntrpltParamsFragment.class.getName()) == null) {
                 navigationView.getMenu().findItem(R.id.nav_input).setChecked(true);
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.container_main, IntrpltParamsFragment.newInstance(), "intrplt_params_tag")
-                        .commit();
+                loadFragment(IntrpltParamsFragment.newInstance());
             }
-
         }
 
-
         super.onStart();
+    }
+
+    private void loadFragment(final Fragment fragment) {
+        Log.e("main", fragment.getClass().getName());
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.container_main, fragment, fragment.getClass().getName())
+                .commit();
     }
 
     @Override
@@ -145,14 +146,10 @@ public class MainActivity extends AppCompatActivity
 
         if (id == R.id.nav_chart) {
             lastFrag = 0;
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container_main, ChartFragment.newInstance(), "chart_tag")
-                    .commit();
+            loadFragment(ChartFragment.newInstance());
         }else if (id == R.id.nav_input) {
             lastFrag = 1;
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.container_main, IntrpltParamsFragment.newInstance(), "intrplt_params_tag")
-                    .commit();
+            loadFragment(IntrpltParamsFragment.newInstance());
         }
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);

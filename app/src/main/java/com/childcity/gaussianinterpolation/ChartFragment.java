@@ -1,6 +1,8 @@
 package com.childcity.gaussianinterpolation;
 
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 
 import android.graphics.Color;
@@ -43,14 +45,14 @@ import java.util.Objects;
 
 public class ChartFragment extends Fragment implements OnChartValueSelectedListener {
     private static final String TAG = "ChartFragment";
+    static final float DEFAULT_DRAW_STEP = 0.1f;
     private static final int seekBarStep = 200;
-    private static final float drawStep = 0.1f;
     private final ChartFragment self = this;
 
     private InterpolationViewModel interpolationViewModel;
     private GraphicDrawerTask graphicDrawerTask;
     private LineChart chart;
-    private float step = drawStep;
+    private float step = DEFAULT_DRAW_STEP;
     private Switch isDrawValue;
 
     static ChartFragment newInstance() {
@@ -67,6 +69,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
+        chart = (LineChart) Objects.requireNonNull(getView()).findViewById(R.id.chart);
         isDrawValue = Objects.requireNonNull(getView()).findViewById(R.id.on_value_visible);
         isDrawValue.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -79,14 +82,17 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         FragmentActivity activity = Objects.requireNonNull(getActivity());
         interpolationViewModel = ViewModelProviders.of(activity).get(InterpolationViewModel.class);
 
-        {
-            // setup and draw chart
-            chart = (LineChart) Objects.requireNonNull(getView()).findViewById(R.id.chart);
-            graphicDrawerTask = new GraphicDrawerTask(self, true);
-            graphicDrawerTask.execute();
-        }
-
         setupStepSeekBar();
+
+        final LiveData<Boolean> inputDataChanged =  interpolationViewModel.getInputDataChangedFlag();
+        inputDataChanged.observe(this, new Observer<Boolean>() {
+            @Override
+            public void onChanged(Boolean isChanged) {
+                // setup and draw chart
+                graphicDrawerTask = new GraphicDrawerTask(self, true);
+                graphicDrawerTask.execute();
+            }
+        });
     }
 
     private LineData getChartData() {
@@ -277,11 +283,6 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         leftY.setAxisMinimum(min);
         leftY.setAxisMaximum(max);
 
-//        xAxis.setAxisMinimum(xAxis.getAxisMinimum() - 2 * step);
-//        xAxis.setAxisMaximum(xAxis.getAxisMaximum() + 2 * step);
-//        leftY.setAxisMinimum(leftY.getAxisMinimum() - 2 * step);
-//        leftY.setAxisMaximum(leftY.getAxisMaximum() + 2 * step);
-
         leftY.setGranularity(0.01f);
     }
 
@@ -348,14 +349,18 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
     private void setupStepSeekBar(){
         final SeekBar stepSeek = Objects.requireNonNull(getView()).findViewById(R.id.step_bar);
-        final EditText stepText = Objects.requireNonNull(getView()).findViewById(R.id.editText);
+        final EditText stepText = Objects.requireNonNull(getView()).findViewById(R.id.step_value);
 
+        stepText.setText(String.valueOf(step));
         stepSeek.setProgress((int) (step * seekBarStep));
 
         stepSeek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-                stepText.setText(String.valueOf(i/(float)seekBarStep));
+                float progress = i / (float) seekBarStep;
+                if(step != progress) {
+                    stepText.setText(String.valueOf(progress));
+                }
             }
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {}
@@ -378,13 +383,17 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
                 if(newStep > 0f)
                     step = newStep;
-                else step = drawStep;
+                else step = DEFAULT_DRAW_STEP;
 
+                if(step != stepSeek.getProgress() / seekBarStep){
+                    stepSeek.setProgress((int) (step * seekBarStep));
+                }
 
                 graphicDrawerTask = new GraphicDrawerTask(self, false);
                 graphicDrawerTask.execute();
             }
         });
+
     }
     //static volatile int changeLock = 0;
 

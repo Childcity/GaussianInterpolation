@@ -30,22 +30,22 @@
             android:progress="10" />
 
         <EditText
-            android:id="@+id/editText"
+            android:id="@+id/step_value"
             android:layout_width="60dp"
             android:layout_height="wrap_content"
             android:ems="10"
-            android:text="0.1"
+            android:freezesText="true"
             android:inputType="numberDecimal" />
 
     </LinearLayout>
 
     <Switch
+        android:id="@+id/on_value_visible"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginEnd="5dp"
         android:layout_marginStart="5dp"
         android:ems="10"
-        android:id="@+id/on_value_visible"
         android:text="Подписывать значение точок"
         android:checked="false" />
 
