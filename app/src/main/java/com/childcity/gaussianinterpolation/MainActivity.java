@@ -5,7 +5,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.FileProvider;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
@@ -22,12 +25,14 @@ import androidx.lifecycle.ViewModelProviders;
 
 import com.google.android.material.navigation.NavigationView;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -162,12 +167,49 @@ public class MainActivity extends AppCompatActivity
             lastFrag = 1;
             loadFragment(IntrpltParamsFragment.class.getName());
         }else if (id == R.id.nav_share) {
+//            final Intent share = new Intent(Intent.ACTION_SEND);
+//            share.setType("image/png");
+//            //Log.e("asas", "" + chartImageUri.getPath());
+//            File imagePath = new File(getExternalFilesDir(Environment.DIRECTORY_DCIM), "Gorodetskiy");
+//            File newFile = new File(imagePath, "interpolation_chart_2536.png");
+//
+//            //if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+//                Uri chartImageUri = FileProvider.getUriForFile(MainActivity.this,
+//                        "com.childcity.gaussianinterpolation.fileprovider",
+//                        newFile);
+//            //}
+//
+//            Log.e("asas", "" + chartImageUri.toString());
+//
+//            share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//            //share.setDataAndType(chartImageUri,"image/png");
+//            share.putExtra(Intent.EXTRA_STREAM, chartImageUri);
+//            startActivity(Intent.createChooser(share, "Share image using"));
             Uri chartImageUri = ((ChartFragment)fragments.get(ChartFragment.class.getName())).saveAsImage();
-            if(chartImageUri != null){
-                Intent share = new Intent(Intent.ACTION_SEND);
+            if(chartImageUri == null){
+                Toast.makeText(this, "Невозможно сохранить изображение.", Toast.LENGTH_LONG).show();
+            } else {
+                Log.e("asas", "" + chartImageUri.getPath());
+
+            File imagePath = new File(getExternalFilesDir(Environment.DIRECTORY_DCIM), "Gorodetskiy");
+            File newFile = new File(imagePath, "interpolation_chart_2536.png");
+                if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                    chartImageUri = FileProvider.getUriForFile(MainActivity.this,
+                            "com.childcity.gaussianinterpolation.fileprovider",
+                            newFile);
+                }
+
+                Log.e("asas", "" + chartImageUri.getPath());
+                Log.e("asas", "" + chartImageUri.toString());
+                Log.e("asas", "" + chartImageUri.getLastPathSegment());
+
+                final Intent share = new Intent(Intent.ACTION_SEND);
                 share.setType("image/png");
-                share.putExtra(Intent.EXTRA_STREAM,chartImageUri);
-                startActivity(Intent.createChooser(share, "Share Image"));
+                share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                share.putExtra(Intent.EXTRA_STREAM, chartImageUri);
+                startActivity(Intent.createChooser(share, "Share image using"));
             }
         }
 

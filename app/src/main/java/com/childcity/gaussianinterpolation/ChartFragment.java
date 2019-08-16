@@ -1,5 +1,6 @@
 package com.childcity.gaussianinterpolation;
 
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
@@ -43,10 +44,14 @@ import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.EntryXComparator;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Random;
 
 public class ChartFragment extends Fragment implements OnChartValueSelectedListener {
     private static final String TAG = "ChartFragment";
@@ -100,20 +105,23 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         });
     }
 
-    public Uri saveAsImage(){
-        String title = "interpolation_chart";
+    Uri saveAsImage(){
+        String title = String.format(Locale.US,"interpolation_chart_%.4s.png",  Math.abs(new Random(new Date().getTime()).nextInt()));
         String subFolderPath = "Gorodetskiy";
 
-        String path = Environment.getExternalStorageDirectory().getPath() + "/DCIM/"
-                + subFolderPath + "/" + title;
-
         if(chart == null || (! chart.saveToGallery(title, subFolderPath, "Интерполяционный график",
-                Bitmap.CompressFormat.PNG, 100))){
-            //Toast.makeText(this.getActivity(), "Невозможно сохранить изображение!", Toast.LENGTH_LONG).show();
+                Bitmap.CompressFormat.PNG, 100)))
+        {
             return null;
         }
+        //
 
-        return new Uri.Builder().appendPath(path).build();
+        return new Uri.Builder()
+                .appendPath(Environment.getExternalStorageDirectory().getPath())
+                .appendPath("DCIM")
+                .appendPath(subFolderPath)
+                .appendPath(title)
+                .build();
     }
 
     private LineData getChartData() {
