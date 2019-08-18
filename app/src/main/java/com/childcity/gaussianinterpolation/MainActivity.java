@@ -167,49 +167,24 @@ public class MainActivity extends AppCompatActivity
             lastFrag = 1;
             loadFragment(IntrpltParamsFragment.class.getName());
         }else if (id == R.id.nav_share) {
-//            final Intent share = new Intent(Intent.ACTION_SEND);
-//            share.setType("image/png");
-//            //Log.e("asas", "" + chartImageUri.getPath());
-//            File imagePath = new File(getExternalFilesDir(Environment.DIRECTORY_DCIM), "Gorodetskiy");
-//            File newFile = new File(imagePath, "interpolation_chart_2536.png");
-//
-//            //if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-//                Uri chartImageUri = FileProvider.getUriForFile(MainActivity.this,
-//                        "com.childcity.gaussianinterpolation.fileprovider",
-//                        newFile);
-//            //}
-//
-//            Log.e("asas", "" + chartImageUri.toString());
-//
-//            share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-//            //share.setDataAndType(chartImageUri,"image/png");
-//            share.putExtra(Intent.EXTRA_STREAM, chartImageUri);
-//            startActivity(Intent.createChooser(share, "Share image using"));
-            Uri chartImageUri = ((ChartFragment)fragments.get(ChartFragment.class.getName())).saveAsImage();
-            if(chartImageUri == null){
+            File chartFile = ((ChartFragment)fragments.get(ChartFragment.class.getName())).saveAsImage();
+            if(chartFile == null){
                 Toast.makeText(this, "Невозможно сохранить изображение.", Toast.LENGTH_LONG).show();
             } else {
-                Log.e("asas", "" + chartImageUri.getPath());
-
-            File imagePath = new File(getExternalFilesDir(Environment.DIRECTORY_DCIM), "Gorodetskiy");
-            File newFile = new File(imagePath, "interpolation_chart_2536.png");
+                Uri imageUri;
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                    chartImageUri = FileProvider.getUriForFile(MainActivity.this,
-                            "com.childcity.gaussianinterpolation.fileprovider",
-                            newFile);
+                    imageUri = FileProvider.getUriForFile(MainActivity.this,
+                            "com.childcity.gaussianinterpolation.fileprovider", chartFile);
+                } else {
+                    imageUri = Uri.fromFile(chartFile);
                 }
-
-                Log.e("asas", "" + chartImageUri.getPath());
-                Log.e("asas", "" + chartImageUri.toString());
-                Log.e("asas", "" + chartImageUri.getLastPathSegment());
 
                 final Intent share = new Intent(Intent.ACTION_SEND);
                 share.setType("image/png");
                 share.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                share.putExtra(Intent.EXTRA_STREAM, chartImageUri);
-                startActivity(Intent.createChooser(share, "Share image using"));
+                share.putExtra(Intent.EXTRA_STREAM, imageUri);
+                startActivity(Intent.createChooser(share, "Share image using:"));
             }
         }
 

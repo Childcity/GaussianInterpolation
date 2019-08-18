@@ -61,6 +61,9 @@ public class InterpolationViewModel extends AndroidViewModel {
                 new PointF(5.0f,2.23f), new PointF(9f,3f),
                 new PointF(36f,6f)
         ));
+
+        prepareParams();
+        inputDataChangedFlag.setValue(true);
     }
 
     float getXmax() {

@@ -105,7 +105,7 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         });
     }
 
-    Uri saveAsImage(){
+    File saveAsImage(){
         String title = String.format(Locale.US,"interpolation_chart_%.4s.png",  Math.abs(new Random(new Date().getTime()).nextInt()));
         String subFolderPath = "Gorodetskiy";
 
@@ -114,14 +114,9 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         {
             return null;
         }
-        //
 
-        return new Uri.Builder()
-                .appendPath(Environment.getExternalStorageDirectory().getPath())
-                .appendPath("DCIM")
-                .appendPath(subFolderPath)
-                .appendPath(title)
-                .build();
+        File imageDir = new File(Environment.getExternalStorageDirectory(), "DCIM/" + subFolderPath);
+        return new File(imageDir, title);
     }
 
     private LineData getChartData() {

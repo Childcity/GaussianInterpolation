@@ -5,8 +5,6 @@ package com.childcity.gaussianinterpolation.MathParser;
  * @author shurik
  */
 
-import android.util.Log;
-
 import java.util.HashMap;
 
 public class MatchParser
@@ -94,16 +92,20 @@ public class MatchParser
         }
 
         if (f.length() > 0) { // если что-нибудь нашли
-            String fStr = f.toString();
-            if ( s.length() > i && s.charAt( i ) == '(') { // и следующий символ скобка значит - это функция
-                String funcArgs = s.substring(fStr.length() + 1); // skip funcName and '('. 'funcArgs' wil contain only args and rest line
-                int comaIndex = funcArgs.indexOf(',');
-                if(comaIndex > 0 && comaIndex < funcArgs.indexOf(')')){
-                    funcArgs = "(" + funcArgs.substring(0, comaIndex) + ")" + funcArgs.substring(comaIndex);
-                }
-                return processFunction(fStr.toLowerCase(), PlusMinus(funcArgs));
+            if (s.length() > i && s.charAt(i) == '(') { // и следующий символ скобка значит - это функция
+                String fName = f.toString();
+                String funcArgs = s.substring(fName.length() + 1);
+                return processFunction(fName.toLowerCase(), PlusMinus(funcArgs));
             } else { // иначе - это переменная
-                return new Result(getVariable(fStr), s.substring(f.length()));
+                String variables = f.toString();
+                StringBuilder variable = new StringBuilder();
+
+                for (int j = 0; j < variables.length()
+                        && (Character.isLetter(variables.charAt(j)) || Character.isDigit(variables.charAt(j))); j++)
+                {
+                    variable.append(variables.charAt(j));
+                }
+                return new Result(getVariable(variable.toString()), s.substring(variable.length()));
             }
         }
 
@@ -135,8 +137,9 @@ public class MatchParser
         }
     }
 
-   private Result Num(String s) throws Exception
-   {
+   /** @noinspection Duplicates*/
+    private Result Num(String s) throws Exception
+    {
         int i = 0;
         int dot_cnt = 0;
         boolean negative = false;
@@ -165,7 +168,8 @@ public class MatchParser
     }
 
     // Тут определяем все нашие функции, которыми мы можем пользоватся в формулах
-    private Result processFunction(String func, Result arg1) throws Exception {
+    private Result processFunction(String func, Result arg1) throws Exception
+    {
         if((! arg1.rest.isEmpty()) && (arg1.rest.charAt(0) == ',')){
             Result arg2 = PlusMinus(arg1.rest.substring(1));
             if(arg2.rest.isEmpty() || arg2.rest.charAt(0) != ')'){
@@ -179,7 +183,7 @@ public class MatchParser
             } else {
                 throw new Exception("function with two arguments '" + func + "' is not defined");
             }
-        }else {
+        } else {
             if(arg1.rest.isEmpty() || arg1.rest.charAt(0) != ')'){
                 throw new Exception("Error: expected ')'");
             }
@@ -197,7 +201,7 @@ public class MatchParser
             } else if (func.equals("exp")) {
                 return new Result(Math.exp(arg1.acc), arg1Rest);
             } else {
-                throw new Exception("function with one argument '" + func + "' is not defined");
+                throw new Exception("function '" + func + "' with one argument '" + arg1.acc + "' is not defined. Rest '" + arg1Rest + "'");
             }
         }
     }
