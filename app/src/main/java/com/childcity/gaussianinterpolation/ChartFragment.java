@@ -290,8 +290,10 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
         // Axis
         chart.getAxisRight().setEnabled(false);
         XAxis xAxis = chart.getXAxis();
+        xAxis.setDrawAxisLine(true); // by default
+        xAxis.setDrawGridLines(true); // by default
         xAxis.enableGridDashedLine(10f, 20f, 0f);
-        xAxis.setPosition(XAxis.XAxisPosition.TOP);
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
         YAxis leftY = chart.getAxisLeft();
         leftY.enableGridDashedLine(10f, 20f, 0f);
@@ -455,8 +457,10 @@ public class ChartFragment extends Fragment implements OnChartValueSelectedListe
 
             fragment.chart.clear();
             fragment.chart.setData(dataSets);
+
             if(isSettingUpChart)
                 fragment.settingUpChart();
+
             fragment.chart.invalidate();
             fragment.chart.animateX(800);
 
